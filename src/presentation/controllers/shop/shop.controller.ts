@@ -47,12 +47,14 @@ export class ShopController {
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: "Criar nova loja e vincular ao admin logado" })
-  @ApiResponse({ status: 201, description: "Loja criada e vinculada com sucesso" })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: "Criar nova loja (super admin cria sem vincular, admin vincula automaticamente)" })
+  @ApiResponse({ status: 201, description: "Loja criada com sucesso" })
   @ApiResponse({ status: 409, description: "Slug já cadastrado" })
   async create(@Body() createShopDTO: CreateShopDTO, @CurrentUser() user: any): Promise<Shop> {
-    return await this.shopService.create(createShopDTO, user.sub);
+    // Super admin cria loja sem vincular, admin vincula automaticamente
+    const userId = user.role === UserRole.SUPER_ADMIN ? null : user.sub;
+    return await this.shopService.create(createShopDTO, userId);
   }
 
   @Put(":id/add-to-owner")

@@ -75,7 +75,7 @@ export class ShopService {
     }
   }
 
-  async create(createShopDTO: CreateShopDTO, ownerId: number): Promise<Shop> {
+  async create(createShopDTO: CreateShopDTO, ownerId: number | null): Promise<Shop> {
     const existing = await this.shopRepository.findOne({
       where: { slug: createShopDTO.slug },
     });
@@ -84,6 +84,15 @@ export class ShopService {
       throw new ConflictException("Já existe uma loja com este slug");
     }
 
+    const shop = this.shopRepository.create(createShopDTO);
+    const savedShop = await this.shopRepository.save(shop);
+
+    // Se ownerId é null, é super admin criando - não vincula a ninguém
+    if (ownerId === null) {
+      return savedShop;
+    }
+
+    // Se tem ownerId, é admin criando - vincula automaticamente
     const owner = await this.userRepository.findOne({
       where: { id: ownerId },
       relations: ["shops"],
@@ -92,9 +101,6 @@ export class ShopService {
     if (!owner || owner.role !== UserRole.ADMIN) {
       throw new ConflictException("Apenas admins podem criar lojas");
     }
-
-    const shop = this.shopRepository.create(createShopDTO);
-    const savedShop = await this.shopRepository.save(shop);
 
     // Vincula a loja ao admin
     if (!owner.shops) {
