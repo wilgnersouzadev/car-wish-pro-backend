@@ -19,28 +19,39 @@ npm install
 # Configurar variáveis de ambiente
 cp .env.example .env
 # Editar .env com suas configurações
-
-# Executar em desenvolvimento
-npm run start:dev
-
-# Build para produção
-npm run build
-
-# Executar em produção
-npm run start:prod
 ```
+
+## 🚀 Executando em desenvolvimento
+
+Com Docker (app + banco, igual ao sgtu-backend):
+
+```bash
+docker compose up
+```
+
+O `package.json` e o `src/` são montados como volume, então alterações no código refletem sem rebuild. O banco fica no serviço `database`; dentro do container a API usa `DB_HOST=database` (nome do serviço).
+
+Sem Docker (só a API local, banco em outro lugar):
+
+```bash
+npm run start:dev
+```
+
+Use `DB_HOST=localhost` no `.env` se o PostgreSQL estiver rodando na máquina.
 
 ## 🗄️ Banco de Dados
 
-O sistema utiliza PostgreSQL. Configure as variáveis de ambiente no arquivo `.env`:
+PostgreSQL. No docker-compose o serviço se chama `database`. Variáveis no `.env`:
 
 ```env
-DB_HOST=localhost
+DB_HOST=database
 DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DB_NAME=car_wish
 ```
+
+Para rodar migrações ou gerar migrations com o banco no Docker, use `DB_HOST=localhost` no `.env` e execute os comandos na máquina (não dentro do container).
 
 ### Migrations
 
