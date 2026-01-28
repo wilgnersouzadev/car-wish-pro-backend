@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  car-wish-api:
+    container_name: car-wish-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - car-wish-db-app
+    networks:
+      - car-wish-network
+
+  car-wish-db-app:
+    container_name: car-wish-db-app
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - car-wish-db-data:/var/lib/postgresql/data
+    networks:
+      - car-wish-network
+
+networks:
+  car-wish-network:
+    driver: bridge
+
+volumes:
+  car-wish-db-data:
+    driver: local
+
