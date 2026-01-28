@@ -3,20 +3,22 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, In, Between } from "typeorm";
 import { CarWash } from "src/core/domain/entities/car-wash.entity";
 import { CreateCarWashDTO } from "src/presentation/dtos/washing/create-washing.dto";
-import { Employee } from "src/core/domain/entities/employee.entity";
+import { User } from "src/core/domain/entities/user.entity";
+import { UserRole } from "src/core/domain/entities/user.entity";
 
 @Injectable()
 export class CarWashService {
   constructor(
     @InjectRepository(CarWash)
     private carWashRepository: Repository<CarWash>,
-    @InjectRepository(Employee)
-    private employeeRepository: Repository<Employee>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   async create(createCarWashDTO: CreateCarWashDTO): Promise<CarWash> {
-    const employees = await this.employeeRepository.findBy({
+    const employees = await this.userRepository.findBy({
       id: In(createCarWashDTO.employeeIds),
+      role: UserRole.EMPLOYEE,
     });
 
     const carWash = this.carWashRepository.create({

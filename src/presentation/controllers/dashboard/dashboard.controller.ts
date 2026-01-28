@@ -1,14 +1,14 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { CarWashService } from "src/core/application/services/washing/washing.service";
-import { EmployeeService } from "src/core/application/services/employee/employee.service";
+import { UserService } from "src/core/application/services/user/user.service";
 
 @ApiTags("Dashboard")
 @Controller("dashboard")
 export class DashboardController {
   constructor(
     private readonly carWashService: CarWashService,
-    private readonly employeeService: EmployeeService,
+    private readonly userService: UserService,
   ) {}
 
   @Get("summary")
@@ -25,13 +25,14 @@ export class DashboardController {
     const totalCars = washesToday.length;
     const revenue = paidWashes.reduce((sum, wash) => sum + Number(wash.amount), 0);
 
-    const employees = await this.employeeService.findAll();
+    const employees = await this.userService.findEmployees();
     const commissions = employees.map((employee) => {
       const employeeWashes = paidWashes.filter((wash) =>
         wash.employees.some((w) => w.id === employee.id),
       );
 
       const totalCommission = employeeWashes.reduce((sum, wash) => {
+        if (!employee.commissionType || employee.commissionValue == null) return sum;
         const commission =
           employee.commissionType === "percentage"
             ? (Number(wash.amount) * Number(employee.commissionValue)) / 100

@@ -1,7 +1,6 @@
 import { ConfigService } from "@nestjs/config";
 import { DataSource, DataSourceOptions } from "typeorm";
 import { Customer } from "./entities/customer.entity";
-import { Employee } from "./entities/employee.entity";
 import { CarWash } from "./entities/car-wash.entity";
 import { Service } from "./entities/service.entity";
 import { User } from "./entities/user.entity";
@@ -16,7 +15,7 @@ export const DatabaseDataSource: DataSourceOptions = {
   username: configService.get<string>("DB_USERNAME", "postgres"),
   password: configService.get<string>("DB_PASSWORD", "postgres"),
   database: configService.get<string>("DB_NAME", "car_wish"),
-  entities: [User, Customer, Vehicle, Employee, Service, CarWash],
+  entities: [User, Customer, Vehicle, Service, CarWash],
   migrations: [__dirname + "/migrations/*.ts"],
   synchronize: false,
 };

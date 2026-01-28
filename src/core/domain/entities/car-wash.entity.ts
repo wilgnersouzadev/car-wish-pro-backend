@@ -2,7 +2,7 @@ import { Column, Entity, ManyToOne, ManyToMany, JoinColumn, JoinTable } from "ty
 import { BaseEntity } from "./base-entity.entity";
 import { Customer } from "./customer.entity";
 import { Vehicle } from "./vehicle.entity";
-import { Employee } from "./employee.entity";
+import { User } from "./user.entity";
 
 export enum ServiceType {
   BASIC = "basic",
@@ -65,7 +65,7 @@ export class CarWash extends BaseEntity {
   @JoinColumn({ name: "customerId" })
   customer: Customer;
 
-  @ManyToMany(() => Employee, (employee) => employee.carWashes)
-  employees: Employee[];
+  @ManyToMany(() => User, (user) => user.carWashes)
+  employees: User[];
 }
 
