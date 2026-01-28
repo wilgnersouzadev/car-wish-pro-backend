@@ -57,20 +57,15 @@ export class CarWash extends BaseEntity {
   @Column({ type: "text", nullable: true })
   notes?: string;
 
-  @ManyToOne(() => Vehicle, (vehicle) => vehicle.washes)
-  @JoinColumn({ name: "veiculoId" })
+  @ManyToOne(() => Vehicle, (vehicle) => vehicle.carWashes)
+  @JoinColumn({ name: "vehicleId" })
   vehicle: Vehicle;
 
   @ManyToOne(() => Customer, (customer) => customer.washes)
-  @JoinColumn({ name: "clienteId" })
+  @JoinColumn({ name: "customerId" })
   customer: Customer;
 
-  @ManyToMany(() => Employee, (employee) => employee.washes)
-  @JoinTable({
-    name: "lavagem_funcionario",
-    joinColumn: { name: "lavagemId", referencedColumnName: "id" },
-    inverseJoinColumn: { name: "funcionarioId", referencedColumnName: "id" },
-  })
+  @ManyToMany(() => Employee, (employee) => employee.carWashes)
   employees: Employee[];
 }
 
