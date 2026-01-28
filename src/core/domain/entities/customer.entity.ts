@@ -1,7 +1,8 @@
-import { Column, Entity, OneToMany } from "typeorm";
+import { Column, Entity, OneToMany, ManyToOne, JoinColumn } from "typeorm";
 import { BaseEntity } from "./base-entity.entity";
 import { Vehicle } from "./vehicle.entity";
 import { CarWash } from "./car-wash.entity";
+import { Shop } from "./shop.entity";
 
 @Entity("customers")
 export class Customer extends BaseEntity {
@@ -16,6 +17,13 @@ export class Customer extends BaseEntity {
 
   @Column({ default: false })
   isFrequentCustomer: boolean;
+
+  @Column()
+  shopId: number;
+
+  @ManyToOne(() => Shop, (shop) => shop.customers)
+  @JoinColumn({ name: "shopId" })
+  shop: Shop;
 
   @OneToMany(() => Vehicle, (vehicle) => vehicle.customer)
   vehicles: Vehicle[];

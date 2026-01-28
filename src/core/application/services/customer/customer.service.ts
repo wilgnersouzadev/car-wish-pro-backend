@@ -11,31 +11,36 @@ export class CustomerService {
     private customerRepository: Repository<Customer>,
   ) {}
 
-  async create(createCustomerDTO: CreateCustomerDTO): Promise<Customer> {
-    const customer = this.customerRepository.create(createCustomerDTO);
+  async create(createCustomerDTO: CreateCustomerDTO, shopId: number): Promise<Customer> {
+    const customer = this.customerRepository.create({ ...createCustomerDTO, shopId });
     return await this.customerRepository.save(customer);
   }
 
-  async findAll(): Promise<Customer[]> {
+  async findAll(shopId: number): Promise<Customer[]> {
     return await this.customerRepository.find({
+      where: { shopId },
       relations: ["vehicles", "washes"],
     });
   }
 
-  async findOne(id: number): Promise<Customer> {
+  async findOne(id: number, shopId: number): Promise<Customer> {
     return await this.customerRepository.findOne({
-      where: { id },
+      where: { id, shopId },
       relations: ["vehicles", "washes"],
     });
   }
 
-  async update(id: number, updateData: Partial<CreateCustomerDTO>): Promise<Customer> {
-    await this.customerRepository.update(id, updateData);
-    return await this.findOne(id);
+  async update(
+    id: number,
+    updateData: Partial<CreateCustomerDTO>,
+    shopId: number,
+  ): Promise<Customer> {
+    await this.customerRepository.update({ id, shopId }, updateData);
+    return await this.findOne(id, shopId);
   }
 
-  async remove(id: number): Promise<void> {
-    await this.customerRepository.softDelete(id);
+  async remove(id: number, shopId: number): Promise<void> {
+    await this.customerRepository.softDelete({ id, shopId });
   }
 }
 

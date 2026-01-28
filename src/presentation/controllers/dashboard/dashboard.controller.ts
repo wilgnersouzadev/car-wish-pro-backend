@@ -1,10 +1,12 @@
 import { Controller, Get } from "@nestjs/common";
-import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { CarWashService } from "src/core/application/services/washing/washing.service";
 import { UserService } from "src/core/application/services/user/user.service";
+import { ShopId } from "src/core/application/decorators/shop-id.decorator";
 
 @ApiTags("Dashboard")
 @Controller("dashboard")
+@ApiBearerAuth()
 export class DashboardController {
   constructor(
     private readonly carWashService: CarWashService,
@@ -13,19 +15,19 @@ export class DashboardController {
 
   @Get("summary")
   @ApiOperation({ summary: "Resumo do dashboard" })
-  async getSummary() {
+  async getSummary(@ShopId() shopId: number) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const washesToday = await this.carWashService.findByDateRange(today, tomorrow);
+    const washesToday = await this.carWashService.findByDateRange(today, tomorrow, shopId);
     const paidWashes = washesToday.filter((wash) => wash.paymentStatus === "paid");
 
     const totalCars = washesToday.length;
     const revenue = paidWashes.reduce((sum, wash) => sum + Number(wash.amount), 0);
 
-    const employees = await this.userService.findEmployees();
+    const employees = await this.userService.findEmployees(shopId);
     const commissions = employees.map((employee) => {
       const employeeWashes = paidWashes.filter((wash) =>
         wash.employees.some((w) => w.id === employee.id),

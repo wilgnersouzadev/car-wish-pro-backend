@@ -3,6 +3,7 @@ import { BaseEntity } from "./base-entity.entity";
 import { Customer } from "./customer.entity";
 import { Vehicle } from "./vehicle.entity";
 import { User } from "./user.entity";
+import { Shop } from "./shop.entity";
 
 export enum ServiceType {
   BASIC = "basic",
@@ -28,6 +29,13 @@ export class CarWash extends BaseEntity {
 
   @Column()
   customerId: number;
+
+  @Column()
+  shopId: number;
+
+  @ManyToOne(() => Shop, (shop) => shop.carWashes)
+  @JoinColumn({ name: "shopId" })
+  shop: Shop;
 
   @Column({
     type: "enum",

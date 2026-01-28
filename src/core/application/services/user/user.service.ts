@@ -12,11 +12,15 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(createUserDTO: CreateUserDTO): Promise<Omit<User, "password">> {
+  async create(createUserDTO: CreateUserDTO, shopId: number | null): Promise<Omit<User, "password">> {
     if (createUserDTO.role === UserRole.EMPLOYEE) {
       if (createUserDTO.commissionType == null || createUserDTO.commissionValue == null) {
         throw new BadRequestException("Funcionários devem ter tipo e valor de comissão");
       }
+    }
+    // Super admin pode ter shopId null, outros roles precisam de shopId
+    if (createUserDTO.role !== UserRole.SUPER_ADMIN && !shopId) {
+      throw new BadRequestException("shopId é obrigatório para este tipo de usuário");
     }
     const existing = await this.userRepository.findOne({
       where: { email: createUserDTO.email },
@@ -28,22 +32,44 @@ export class UserService {
     const payload = {
       ...createUserDTO,
       password: hashedPassword,
+      shopId: createUserDTO.role === UserRole.SUPER_ADMIN ? null : shopId,
       commissionType: createUserDTO.role === UserRole.EMPLOYEE ? createUserDTO.commissionType : null,
       commissionValue: createUserDTO.role === UserRole.EMPLOYEE ? createUserDTO.commissionValue : null,
     };
     const user = this.userRepository.create(payload);
     const saved = await this.userRepository.save(user);
-    return this.findOne(saved.id);
+    const isSuperAdmin = createUserDTO.role === UserRole.SUPER_ADMIN;
+    return this.findOne(saved.id, shopId, isSuperAdmin);
   }
 
-  async findAll(): Promise<Omit<User, "password">[]> {
+  async findAll(shopId: number | null, role?: UserRole, isSuperAdmin = false): Promise<Omit<User, "password">[]> {
+    const where: any = {};
+    if (!isSuperAdmin && shopId !== null) {
+      where.shopId = shopId;
+    }
+    if (role) {
+      where.role = role;
+    }
     return await this.userRepository.find({
+      where,
       order: { createdAt: "DESC" },
     });
   }
 
-  async findOne(id: number): Promise<Omit<User, "password">> {
-    const user = await this.userRepository.findOne({ where: { id } });
+  async findOne(id: number, shopId: number | null, isSuperAdmin = false): Promise<Omit<User, "password">> {
+    const where: any = { id };
+    if (!isSuperAdmin && shopId !== null) {
+      where.shopId = shopId;
+    }
+    const user = await this.userRepository.findOne({ where });
+    if (!user) {
+      return null;
+    }
+    return user;
+  }
+
+  async findMe(userId: number): Promise<Omit<User, "password">> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       return null;
     }
@@ -59,6 +85,7 @@ export class UserService {
         "email",
         "password",
         "role",
+        "shopId",
         "isActive",
         "commissionType",
         "commissionValue",
@@ -69,9 +96,9 @@ export class UserService {
   }
 
   /** Usuários com role EMPLOYEE (para lavagens e dashboard) */
-  async findEmployees(): Promise<Omit<User, "password">[]> {
+  async findEmployees(shopId: number): Promise<Omit<User, "password">[]> {
     return await this.userRepository.find({
-      where: { role: UserRole.EMPLOYEE },
+      where: { role: UserRole.EMPLOYEE, shopId },
       order: { createdAt: "DESC" },
     });
   }
@@ -79,8 +106,14 @@ export class UserService {
   async update(
     id: number,
     updateData: Partial<CreateUserDTO>,
+    shopId: number | null,
+    isSuperAdmin = false,
   ): Promise<Omit<User, "password">> {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const where: any = { id };
+    if (!isSuperAdmin && shopId !== null) {
+      where.shopId = shopId;
+    }
+    const user = await this.userRepository.findOne({ where });
     if (!user) {
       return null;
     }
@@ -95,11 +128,19 @@ export class UserService {
       toUpdate.commissionType = null;
       toUpdate.commissionValue = null;
     }
-    await this.userRepository.update(id, toUpdate);
-    return this.findOne(id);
+    const updateWhere: any = { id };
+    if (!isSuperAdmin && shopId !== null) {
+      updateWhere.shopId = shopId;
+    }
+    await this.userRepository.update(updateWhere, toUpdate);
+    return this.findOne(id, shopId, isSuperAdmin);
   }
 
-  async remove(id: number): Promise<void> {
-    await this.userRepository.softDelete(id);
+  async remove(id: number, shopId: number | null, isSuperAdmin = false): Promise<void> {
+    const where: any = { id };
+    if (!isSuperAdmin && shopId !== null) {
+      where.shopId = shopId;
+    }
+    await this.userRepository.softDelete(where);
   }
 }

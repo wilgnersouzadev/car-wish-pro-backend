@@ -2,6 +2,7 @@ import { Column, Entity, ManyToOne, OneToMany, JoinColumn } from "typeorm";
 import { BaseEntity } from "./base-entity.entity";
 import { Customer } from "./customer.entity";
 import { CarWash } from "./car-wash.entity";
+import { Shop } from "./shop.entity";
 
 export enum VehicleType {
   CAR = "car",
@@ -11,7 +12,7 @@ export enum VehicleType {
 
 @Entity("vehicles")
 export class Vehicle extends BaseEntity {
-  @Column({ length: 10, unique: true })
+  @Column({ length: 10 })
   licensePlate: string;
 
   @Column({ length: 255 })
@@ -29,6 +30,13 @@ export class Vehicle extends BaseEntity {
 
   @Column()
   customerId: number;
+
+  @Column()
+  shopId: number;
+
+  @ManyToOne(() => Shop, (shop) => shop.vehicles)
+  @JoinColumn({ name: "shopId" })
+  shop: Shop;
 
   @ManyToOne(() => Customer, (customer) => customer.vehicles)
   @JoinColumn({ name: "customerId" })
