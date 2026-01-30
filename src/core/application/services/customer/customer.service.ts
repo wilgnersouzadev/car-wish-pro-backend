@@ -16,10 +16,25 @@ export class CustomerService {
     return await this.customerRepository.save(customer);
   }
 
-  async findAll(shopId: number): Promise<Customer[]> {
+  async findAll(shopId: number, search?: string): Promise<Customer[]> {
+    if (search?.trim()) {
+      const term = `%${search.trim()}%`;
+      return await this.customerRepository
+        .createQueryBuilder("customer")
+        .leftJoinAndSelect("customer.vehicles", "vehicles")
+        .leftJoinAndSelect("customer.washes", "washes")
+        .where("customer.shopId = :shopId", { shopId })
+        .andWhere(
+          "(customer.name ILIKE :term OR customer.phone ILIKE :term OR customer.notes ILIKE :term)",
+          { term },
+        )
+        .orderBy("customer.name", "ASC")
+        .getMany();
+    }
     return await this.customerRepository.find({
       where: { shopId },
       relations: ["vehicles", "washes"],
+      order: { name: "ASC" },
     });
   }
 

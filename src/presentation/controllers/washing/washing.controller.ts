@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   ParseIntPipe,
@@ -12,6 +13,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { CarWashService } from "src/core/application/services/washing/washing.service";
 import { CreateCarWashDTO } from "src/presentation/dtos/washing/create-washing.dto";
+import { UpdatePaymentDto } from "src/presentation/dtos/washing/update-payment.dto";
 import { CarWash } from "src/core/domain/entities/car-wash.entity";
 import { ShopId } from "src/core/application/decorators/shop-id.decorator";
 
@@ -61,6 +63,28 @@ export class WashingController {
     @ShopId() shopId: number,
   ): Promise<CarWash> {
     return await this.carWashService.updateStatus(id, status, shopId);
+  }
+
+  @Patch(":id/payment")
+  @ApiOperation({
+    summary: "Atualizar pagamento manual",
+    description:
+      "Registra/atualiza valor pago, forma de pagamento e status. Sem integração com gateway.",
+  })
+  async updatePayment(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdatePaymentDto,
+    @ShopId() shopId: number,
+  ): Promise<CarWash> {
+    return await this.carWashService.updatePayment(
+      id,
+      {
+        amount: dto.amount,
+        paymentMethod: dto.paymentMethod,
+        paymentStatus: dto.paymentStatus,
+      },
+      shopId,
+    );
   }
 
   @Delete(":id")

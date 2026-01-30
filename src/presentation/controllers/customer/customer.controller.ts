@@ -7,8 +7,9 @@ import {
   Post,
   Put,
   ParseIntPipe,
+  Query,
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
 import { CustomerService } from "src/core/application/services/customer/customer.service";
 import { CreateCustomerDTO } from "src/presentation/dtos/customer/create-customer.dto";
 import { Customer } from "src/core/domain/entities/customer.entity";
@@ -32,9 +33,13 @@ export class CustomerController {
 
   @Get()
   @ApiOperation({ summary: "Listar todos os clientes da loja" })
+  @ApiQuery({ name: "search", required: false, description: "Busca aproximada por nome, telefone ou observações (ILIKE)" })
   @ApiResponse({ status: 200, description: "Lista de clientes" })
-  async findAll(@ShopId() shopId: number): Promise<Customer[]> {
-    return await this.customerService.findAll(shopId);
+  async findAll(
+    @ShopId() shopId: number,
+    @Query("search") search?: string,
+  ): Promise<Customer[]> {
+    return await this.customerService.findAll(shopId, search);
   }
 
   @Get(":id")

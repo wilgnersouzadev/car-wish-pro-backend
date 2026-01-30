@@ -62,12 +62,19 @@ O sistema é **multi-tenant**: uma mesma instalação atende várias **lojas** (
 - **Data/hora** e observações opcionais.
 - **Funcionários**: uma lavagem pode ter vários funcionários (ManyToMany `car_wash_user`); usado para calcular comissão por funcionário.
 
+### 2.4.1 Pagamentos (manual, sem gateway)
+
+- Por enquanto **não há integração com sistema de pagamento**. O usuário informa manualmente o que foi feito e quanto foi pago.
+- **Atualização manual**: `PATCH /car-washes/:id/payment` permite alterar **valor** (amount), **forma de pagamento** (paymentMethod) e **status** (paymentStatus) da lavagem.
+- Esses dados alimentam o cálculo de **comissões** e os **dashboards** (faturamento, total de lavagens por tipo, etc.).
+- **Futuro**: integração com gateway de pagamento e link de compartilhamento para o cliente acompanhar o andamento da lavagem.
+
 ### 2.5 Comissões (funcionários)
 
 - Apenas usuários com role **employee** têm comissão.
 - **Tipo**: `percentage` (percentual sobre o valor) ou `fixed` (valor fixo por lavagem).
 - **Valor**: número decimal (percentual ou valor em reais).
-- No dashboard, as comissões do dia são calculadas com base nas lavagens **pagas** em que o funcionário participou.
+- No dashboard, as comissões são calculadas com base nas lavagens **pagas** em que o funcionário participou (no período informado).
 
 ### 2.6 Autenticação e contexto de loja
 
@@ -174,8 +181,16 @@ src/
 | **Users** | CRUD usuários; listar/filtrar por role e shop (super_admin vs admin) |
 | **Customers** | CRUD clientes (sempre no contexto da loja) |
 | **Vehicles** | CRUD veículos; busca por placa |
-| **Car Washes** | CRUD lavagens; filtro por período; atualizar status de pagamento |
-| **Dashboard** | `GET /dashboard/summary` – resumo do dia (total carros, faturamento, comissões por funcionário) |
+| **Car Washes** | CRUD lavagens; filtro por período; atualizar status de pagamento; **`PATCH /car-washes/:id/payment`** – atualização manual de valor/forma/status do pagamento |
+| **Dashboard** | Resumos por perfil (período opcional, lavagens por tipo, comissões). Ver abaixo. |
+
+### Dashboard por perfil
+
+| Perfil | Endpoint | Descrição |
+|--------|----------|-----------|
+| **Super admin** | `GET /dashboard/summary` (sem `shopId` no query) | Resumo **global**: lista de lojas com total de carros, faturamento, comissões por funcionário, lavagens por tipo e totais agregados. Período: `startDate` e `endDate` (opcional; padrão: dia atual). |
+| **Admin da loja** | `GET /dashboard/summary` (com loja no contexto ou `?shopId=` para super_admin) | Resumo **da loja**: total carros, faturamento, comissões por funcionário, **lavagens por tipo** (basic/full/polish), últimas lavagens. Período: `startDate` e `endDate` (opcional). |
+| **Funcionário** | `GET /dashboard/me` | **Minhas** lavagens no período, **minhas** comissões, veículos que lavei e contagem por tipo de serviço. Período: `startDate` e `endDate` (opcional). |
 
 Os detalhes de cada endpoint (body, query, respostas) estão no Swagger.
 

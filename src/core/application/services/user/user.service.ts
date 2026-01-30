@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as bcrypt from "bcrypt";
-import { Repository } from "typeorm";
+import { Repository, ILike } from "typeorm";
 import { User, UserRole } from "src/core/domain/entities/user.entity";
 import { CreateUserDTO } from "src/presentation/dtos/user/create-user.dto";
 
@@ -42,18 +42,24 @@ export class UserService {
     return this.findOne(saved.id, shopId, isSuperAdmin);
   }
 
-  async findAll(shopId: number | null, role?: UserRole, isSuperAdmin = false): Promise<Omit<User, "password">[]> {
-    const where: any = {};
+  async findAll(
+    shopId: number | null,
+    role?: UserRole,
+    isSuperAdmin = false,
+    search?: string,
+  ): Promise<Omit<User, "password">[]> {
+    const qb = this.userRepository.createQueryBuilder("user").orderBy("user.createdAt", "DESC");
     if (!isSuperAdmin && shopId !== null) {
-      where.shopId = shopId;
+      qb.andWhere("user.shopId = :shopId", { shopId });
     }
     if (role) {
-      where.role = role;
+      qb.andWhere("user.role = :role", { role });
     }
-    return await this.userRepository.find({
-      where,
-      order: { createdAt: "DESC" },
-    });
+    if (search?.trim()) {
+      const term = `%${search.trim()}%`;
+      qb.andWhere("(user.name ILIKE :term OR user.email ILIKE :term)", { term });
+    }
+    return await qb.getMany();
   }
 
   async findOne(id: number, shopId: number | null, isSuperAdmin = false): Promise<Omit<User, "password">> {

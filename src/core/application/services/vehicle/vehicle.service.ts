@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Repository, ILike } from "typeorm";
 import { Vehicle } from "src/core/domain/entities/vehicle.entity";
 import { Customer } from "src/core/domain/entities/customer.entity";
 import { CreateVehicleDTO } from "src/presentation/dtos/vehicle/create-vehicle.dto";
@@ -35,7 +35,21 @@ export class VehicleService {
     return await this.vehicleRepository.save(vehicle);
   }
 
-  async findAll(shopId: number): Promise<Vehicle[]> {
+  async findAll(shopId: number, search?: string): Promise<Vehicle[]> {
+    if (search?.trim()) {
+      const term = `%${search.trim()}%`;
+      return await this.vehicleRepository
+        .createQueryBuilder("v")
+        .leftJoinAndSelect("v.customer", "customer")
+        .leftJoinAndSelect("v.carWashes", "carWashes")
+        .where("v.shopId = :shopId", { shopId })
+        .andWhere(
+          "(v.licensePlate ILIKE :term OR v.model ILIKE :term OR v.color ILIKE :term OR customer.name ILIKE :term)",
+          { term },
+        )
+        .orderBy("v.createdAt", "DESC")
+        .getMany();
+    }
     return await this.vehicleRepository.find({
       where: { shopId },
       relations: ["customer", "carWashes"],
@@ -50,10 +64,13 @@ export class VehicleService {
     });
   }
 
-  async findByPlate(licensePlate: string, shopId: number): Promise<Vehicle> {
-    return await this.vehicleRepository.findOne({
-      where: { licensePlate, shopId },
+  /** Busca por placa com ILIKE (aproximada, case-insensitive). Retorna todos os que contêm o termo. */
+  async findByPlate(plate: string, shopId: number): Promise<Vehicle[]> {
+    const term = `%${plate.trim()}%`;
+    return await this.vehicleRepository.find({
+      where: { shopId, licensePlate: ILike(term) },
       relations: ["customer", "carWashes"],
+      order: { createdAt: "DESC" },
     });
   }
 

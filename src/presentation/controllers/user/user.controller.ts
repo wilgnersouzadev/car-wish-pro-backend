@@ -53,14 +53,16 @@ export class UserController {
   @ApiOperation({ summary: "Listar usuários (super admin vê todos, admin vê apenas da sua loja)" })
   @ApiQuery({ name: "role", enum: UserRole, required: false, description: "Filtrar por role" })
   @ApiQuery({ name: "shopId", required: false, description: "Filtrar por loja específica (apenas super admin)" })
+  @ApiQuery({ name: "search", required: false, description: "Busca aproximada por nome ou email (ILIKE)" })
   @ApiResponse({ status: 200, description: "Lista de usuários" })
   async findAll(
     @ShopId() shopId: number | null,
     @Query("role") role?: UserRole,
+    @Query("search") search?: string,
     @CurrentUser() user?: any,
   ): Promise<Omit<User, "password">[]> {
     const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
-    return await this.userService.findAll(shopId, role, isSuperAdmin);
+    return await this.userService.findAll(shopId, role, isSuperAdmin, search);
   }
 
   @Get(":id")

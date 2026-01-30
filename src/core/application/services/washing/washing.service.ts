@@ -83,8 +83,62 @@ export class CarWashService {
     });
   }
 
+  /** Lavagens em um período; se shopId for null, retorna de todas as lojas (uso super_admin) */
+  async findByDateRangeAllShops(
+    startDate: Date,
+    endDate: Date,
+    shopId: number | null,
+  ): Promise<CarWash[]> {
+    const where: any = { dateTime: Between(startDate, endDate) };
+    if (shopId != null) where.shopId = shopId;
+    return await this.carWashRepository.find({
+      where,
+      relations: ["vehicle", "customer", "employees", "shop"],
+      order: { dateTime: "DESC" },
+    });
+  }
+
+  /** Lavagens em que o funcionário participou (para dashboard do employee) */
+  async findMyWashes(
+    employeeUserId: number,
+    shopId: number,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<CarWash[]> {
+    const qb = this.carWashRepository
+      .createQueryBuilder("cw")
+      .innerJoin("cw.employees", "emp", "emp.id = :employeeUserId", { employeeUserId })
+      .leftJoinAndSelect("cw.vehicle", "vehicle")
+      .leftJoinAndSelect("cw.customer", "customer")
+      .where("cw.shopId = :shopId", { shopId });
+
+    if (startDate && endDate) {
+      qb.andWhere("cw.dateTime BETWEEN :startDate AND :endDate", { startDate, endDate });
+    }
+    qb.orderBy("cw.dateTime", "DESC");
+    return await qb.getMany();
+  }
+
   async updateStatus(id: number, status: "paid" | "pending", shopId: number): Promise<CarWash> {
     await this.carWashRepository.update({ id, shopId }, { paymentStatus: status as any });
+    return await this.findOne(id, shopId);
+  }
+
+  /** Atualização manual de pagamento: valor, forma e/ou status (sem integração com gateway) */
+  async updatePayment(
+    id: number,
+    payload: { amount?: number; paymentMethod?: string; paymentStatus?: string },
+    shopId: number,
+  ): Promise<CarWash> {
+    const wash = await this.carWashRepository.findOne({ where: { id, shopId } });
+    if (!wash) {
+      throw new BadRequestException("Lavagem não encontrada ou não pertence à loja");
+    }
+    const update: Partial<CarWash> = {};
+    if (payload.amount != null) update.amount = payload.amount as any;
+    if (payload.paymentMethod != null) update.paymentMethod = payload.paymentMethod as any;
+    if (payload.paymentStatus != null) update.paymentStatus = payload.paymentStatus as any;
+    await this.carWashRepository.update({ id, shopId }, update);
     return await this.findOne(id, shopId);
   }
 
