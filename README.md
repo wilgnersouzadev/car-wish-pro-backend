@@ -2,6 +2,10 @@
 
 Backend para sistema de gestão de lava-jato desenvolvido com NestJS, TypeORM e PostgreSQL.
 
+## 📖 Documentação completa
+
+Para entender o **contexto**, **regras de negócio** e **estrutura** do projeto em detalhes, consulte **[DOCUMENTATION.md](./DOCUMENTATION.md)**.
+
 ## 🚀 Tecnologias
 
 - **NestJS** - Framework Node.js
