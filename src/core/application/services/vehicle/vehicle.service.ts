@@ -64,7 +64,6 @@ export class VehicleService {
     });
   }
 
-  /** Busca por placa com ILIKE (aproximada, case-insensitive). Retorna todos os que contêm o termo. */
   async findByPlate(plate: string, shopId: number): Promise<Vehicle[]> {
     const term = `%${plate.trim()}%`;
     return await this.vehicleRepository.find({

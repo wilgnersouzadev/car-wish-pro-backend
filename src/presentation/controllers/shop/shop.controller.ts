@@ -37,11 +37,9 @@ export class ShopController {
     @ShopId() shopId: number | null,
     @CurrentUser() user: any,
   ): Promise<Shop[]> {
-    // Super admin vê todas as lojas (ou pode filtrar por shopId via query param)
     if (user.role === UserRole.SUPER_ADMIN) {
       return await this.shopService.findAll(shopId);
     }
-    // Admin vê apenas suas lojas (via ManyToMany)
     return await this.shopService.findAll(null, user.sub);
   }
 
@@ -52,7 +50,6 @@ export class ShopController {
   @ApiResponse({ status: 201, description: "Loja criada com sucesso" })
   @ApiResponse({ status: 409, description: "Slug já cadastrado" })
   async create(@Body() createShopDTO: CreateShopDTO, @CurrentUser() user: any): Promise<Shop> {
-    // Super admin cria loja sem vincular, admin vincula automaticamente
     const userId = user.role === UserRole.SUPER_ADMIN ? null : user.sub;
     return await this.shopService.create(createShopDTO, userId);
   }

@@ -22,7 +22,6 @@ export class TenantGuard implements CanActivate {
       throw new ForbiddenException("Acesso negado: usuário não encontrado no token");
     }
 
-    // Super admin não precisa de shopId
     if (user.role === "super_admin") {
       request.shopId = null;
       request.userRole = user.role;

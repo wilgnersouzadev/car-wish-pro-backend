@@ -18,7 +18,6 @@ export class UserService {
         throw new BadRequestException("Funcionários devem ter tipo e valor de comissão");
       }
     }
-    // Super admin pode ter shopId null, outros roles precisam de shopId
     if (createUserDTO.role !== UserRole.SUPER_ADMIN && !shopId) {
       throw new BadRequestException("shopId é obrigatório para este tipo de usuário");
     }
@@ -101,7 +100,6 @@ export class UserService {
     });
   }
 
-  /** Usuários com role EMPLOYEE (para lavagens e dashboard) */
   async findEmployees(shopId: number): Promise<Omit<User, "password">[]> {
     return await this.userRepository.find({
       where: { role: UserRole.EMPLOYEE, shopId },

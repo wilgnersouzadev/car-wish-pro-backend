@@ -87,12 +87,10 @@ export class ShopService {
     const shop = this.shopRepository.create(createShopDTO);
     const savedShop = await this.shopRepository.save(shop);
 
-    // Se ownerId é null, é super admin criando - não vincula a ninguém
     if (ownerId === null) {
       return savedShop;
     }
 
-    // Se tem ownerId, é admin criando - vincula automaticamente
     const owner = await this.userRepository.findOne({
       where: { id: ownerId },
       relations: ["shops"],
@@ -102,12 +100,10 @@ export class ShopService {
       throw new ConflictException("Apenas admins podem criar lojas");
     }
 
-    // Vincula a loja ao admin
     if (!owner.shops) {
       owner.shops = [];
     }
     owner.shops.push(savedShop);
-    // Se não tinha contexto, define esta como contexto atual
     if (!owner.shopId) {
       owner.shopId = savedShop.id;
     }
@@ -134,13 +130,11 @@ export class ShopService {
       throw new ConflictException("Apenas admins podem ser vinculados a lojas");
     }
 
-    // Verifica se já está vinculado
     const alreadyLinked = owner.shops?.some((s) => s.id === shopId);
     if (alreadyLinked) {
       throw new ConflictException("Admin já está vinculado a esta loja");
     }
 
-    // Vincula a loja ao admin
     if (!owner.shops) {
       owner.shops = [];
     }
@@ -151,7 +145,6 @@ export class ShopService {
   }
 
   async findAll(shopId?: number | null, userId?: number): Promise<Shop[]> {
-    // Se passou shopId específico, retorna apenas essa loja
     if (shopId !== null && shopId !== undefined) {
       return await this.shopRepository.find({
         where: { id: shopId },
@@ -159,7 +152,6 @@ export class ShopService {
       });
     }
 
-    // Se passou userId, retorna apenas as lojas desse admin
     if (userId) {
       const user = await this.userRepository.findOne({
         where: { id: userId },
@@ -168,7 +160,6 @@ export class ShopService {
       return user?.shops || [];
     }
 
-    // Caso contrário, retorna todas
     return await this.shopRepository.find({
       order: { createdAt: "DESC" },
     });

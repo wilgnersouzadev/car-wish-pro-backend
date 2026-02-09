@@ -64,17 +64,14 @@ export class AuthService {
 
     let targetShopId: number | null = user.shopId;
 
-    // Se admin tem múltiplas lojas e passou shopId no login, valida e usa
     if (user.role === "admin" && loginDTO.shopId) {
       const hasAccess = user.shops?.some((shop) => shop.id === loginDTO.shopId);
       if (!hasAccess) {
         throw new UnauthorizedException("Você não tem acesso a esta loja");
       }
       targetShopId = loginDTO.shopId;
-      // Atualiza o contexto atual do usuário
       await this.userRepository.update(user.id, { shopId: loginDTO.shopId });
     } else if (user.role === "admin" && user.shops && user.shops.length > 0 && !user.shopId) {
-      // Se admin tem lojas mas não tem contexto atual, usa a primeira
       targetShopId = user.shops[0].id;
       await this.userRepository.update(user.id, { shopId: targetShopId });
     }
@@ -106,7 +103,6 @@ export class AuthService {
       throw new UnauthorizedException("Usuário não encontrado");
     }
 
-    // Valida se o usuário tem acesso à loja
     if (user.role === "admin") {
       const hasAccess = user.shops?.some((shop) => shop.id === shopId);
       if (!hasAccess) {
@@ -116,10 +112,8 @@ export class AuthService {
       throw new UnauthorizedException("Apenas admins podem trocar de loja");
     }
 
-    // Atualiza o contexto
     await this.userRepository.update(userId, { shopId });
 
-    // Gera novo token com o novo shopId
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,

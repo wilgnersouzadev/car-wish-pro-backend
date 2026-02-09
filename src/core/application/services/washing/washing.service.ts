@@ -83,7 +83,6 @@ export class CarWashService {
     });
   }
 
-  /** Lavagens em um período; se shopId for null, retorna de todas as lojas (uso super_admin) */
   async findByDateRangeAllShops(
     startDate: Date,
     endDate: Date,
@@ -98,7 +97,6 @@ export class CarWashService {
     });
   }
 
-  /** Lavagens em que o funcionário participou (para dashboard do employee) */
   async findMyWashes(
     employeeUserId: number,
     shopId: number,
@@ -124,7 +122,6 @@ export class CarWashService {
     return await this.findOne(id, shopId);
   }
 
-  /** Atualização manual de pagamento: valor, forma e/ou status (sem integração com gateway) */
   async updatePayment(
     id: number,
     payload: { amount?: number; paymentMethod?: string; paymentStatus?: string },
