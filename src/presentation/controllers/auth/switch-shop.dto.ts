@@ -1,9 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNumber, IsNotEmpty } from "class-validator";
+import { IsNumber, IsOptional } from "class-validator";
 
 export class SwitchShopDTO {
-  @ApiProperty({ example: 1, description: "ID da loja para trocar o contexto" })
+  @ApiProperty({ example: 1, description: "ID da loja para trocar o contexto (null para visão geral)", nullable: true })
   @IsNumber()
-  @IsNotEmpty()
-  shopId: number;
+  @IsOptional()
+  shopId: number | null;
 }

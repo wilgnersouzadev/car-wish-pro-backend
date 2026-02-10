@@ -93,7 +93,7 @@ export class AuthService {
     };
   }
 
-  async switchShop(userId: number, shopId: number): Promise<{ access_token: string; shopId: number }> {
+  async switchShop(userId: number, shopId: number | null): Promise<{ access_token: string; shopId: number | null }> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ["shops"],
@@ -103,7 +103,11 @@ export class AuthService {
       throw new UnauthorizedException("Usuário não encontrado");
     }
 
-    if (user.role === "admin") {
+    if (shopId === null) {
+      if (user.role !== "super_admin") {
+        throw new UnauthorizedException("Apenas super admins podem desmarcar a loja");
+      }
+    } else if (user.role === "admin") {
       const hasAccess = user.shops?.some((shop) => shop.id === shopId);
       if (!hasAccess) {
         throw new UnauthorizedException("Você não tem acesso a esta loja");
