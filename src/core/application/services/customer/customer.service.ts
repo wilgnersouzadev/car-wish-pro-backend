@@ -17,34 +17,45 @@ export class CustomerService {
     return await this.customerRepository.save(customer);
   }
 
-  async findAll(shopId: number, search?: string, page = 1, limit = 10): Promise<PaginatedResponse<Customer>> {
+  async findAll(
+    shopId: number,
+    search?: string,
+    page = 1,
+    limit = 10,
+    startDate?: string,
+    endDate?: string,
+    sortBy = "name",
+    sortOrder: "ASC" | "DESC" = "ASC",
+  ): Promise<PaginatedResponse<Customer>> {
     const skip = (page - 1) * limit;
+
+    const qb = this.customerRepository
+      .createQueryBuilder("customer")
+      .leftJoinAndSelect("customer.vehicles", "vehicles")
+      .leftJoinAndSelect("customer.washes", "washes")
+      .where("customer.shopId = :shopId", { shopId });
 
     if (search?.trim()) {
       const term = `%${search.trim()}%`;
-      const [data, total] = await this.customerRepository
-        .createQueryBuilder("customer")
-        .leftJoinAndSelect("customer.vehicles", "vehicles")
-        .leftJoinAndSelect("customer.washes", "washes")
-        .where("customer.shopId = :shopId", { shopId })
-        .andWhere(
-          "(customer.name ILIKE :term OR customer.phone ILIKE :term OR customer.notes ILIKE :term)",
-          { term },
-        )
-        .orderBy("customer.name", "ASC")
-        .skip(skip)
-        .take(limit)
-        .getManyAndCount();
-      return buildPaginatedResponse(data, total, page, limit);
+      qb.andWhere(
+        "(customer.name ILIKE :term OR customer.phone ILIKE :term OR customer.notes ILIKE :term)",
+        { term },
+      );
     }
 
-    const [data, total] = await this.customerRepository.findAndCount({
-      where: { shopId },
-      relations: ["vehicles", "washes"],
-      order: { name: "ASC" },
-      skip,
-      take: limit,
-    });
+    if (startDate) {
+      qb.andWhere("customer.createdAt >= :startDate", { startDate: new Date(startDate) });
+    }
+
+    if (endDate) {
+      qb.andWhere("customer.createdAt <= :endDate", { endDate: new Date(endDate) });
+    }
+
+    const validSortFields = ["name", "createdAt", "updatedAt", "phone"];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "name";
+    qb.orderBy(`customer.${sortField}`, sortOrder);
+
+    const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
     return buildPaginatedResponse(data, total, page, limit);
   }
 

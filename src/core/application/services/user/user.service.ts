@@ -49,19 +49,39 @@ export class UserService {
     search?: string,
     page = 1,
     limit = 10,
+    startDate?: string,
+    endDate?: string,
+    sortBy = "createdAt",
+    sortOrder: "ASC" | "DESC" = "DESC",
   ): Promise<PaginatedResponse<Omit<User, "password">>> {
     const skip = (page - 1) * limit;
-    const qb = this.userRepository.createQueryBuilder("user").orderBy("user.createdAt", "DESC");
+    const qb = this.userRepository.createQueryBuilder("user");
+
     if (!isSuperAdmin && shopId !== null) {
       qb.andWhere("user.shopId = :shopId", { shopId });
     }
+
     if (role) {
       qb.andWhere("user.role = :role", { role });
     }
+
     if (search?.trim()) {
       const term = `%${search.trim()}%`;
       qb.andWhere("(user.name ILIKE :term OR user.email ILIKE :term)", { term });
     }
+
+    if (startDate) {
+      qb.andWhere("user.createdAt >= :startDate", { startDate: new Date(startDate) });
+    }
+
+    if (endDate) {
+      qb.andWhere("user.createdAt <= :endDate", { endDate: new Date(endDate) });
+    }
+
+    const validSortFields = ["name", "email", "role", "createdAt", "updatedAt"];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    qb.orderBy(`user.${sortField}`, sortOrder);
+
     const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
     return buildPaginatedResponse(data, total, page, limit);
   }

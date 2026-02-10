@@ -36,13 +36,30 @@ export class CustomerController {
   @Get()
   @ApiOperation({ summary: "Listar todos os clientes da loja" })
   @ApiQuery({ name: "search", required: false, description: "Busca aproximada por nome, telefone ou observações (ILIKE)" })
+  @ApiQuery({ name: "startDate", required: false, description: "Data inicial para filtro (ISO 8601)" })
+  @ApiQuery({ name: "endDate", required: false, description: "Data final para filtro (ISO 8601)" })
+  @ApiQuery({ name: "sortBy", required: false, description: "Campo para ordenação (name, createdAt, etc)" })
+  @ApiQuery({ name: "sortOrder", required: false, description: "Ordem de ordenação (ASC ou DESC)" })
   @ApiResponse({ status: 200, description: "Lista de clientes paginada" })
   async findAll(
     @ShopId() shopId: number,
     @Query("search") search?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: "ASC" | "DESC",
     @Query() pagination?: PaginationDTO,
   ): Promise<PaginatedResponse<Customer>> {
-    return await this.customerService.findAll(shopId, search, pagination?.page, pagination?.limit);
+    return await this.customerService.findAll(
+      shopId,
+      search,
+      pagination?.page,
+      pagination?.limit,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+    );
   }
 
   @Get(":id")

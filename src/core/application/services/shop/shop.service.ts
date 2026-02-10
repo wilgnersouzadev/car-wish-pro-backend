@@ -184,4 +184,9 @@ export class ShopService {
   async findBySlug(slug: string): Promise<Shop> {
     return await this.shopRepository.findOne({ where: { slug } });
   }
+
+  async updateLogo(id: number, logoUrl: string | null): Promise<Shop> {
+    await this.shopRepository.update({ id }, { logoUrl });
+    return await this.findOne(id);
+  }
 }

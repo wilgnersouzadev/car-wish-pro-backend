@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, Inject, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, In, Between } from "typeorm";
 import { CarWash } from "src/core/domain/entities/car-wash.entity";
@@ -7,6 +7,8 @@ import { User, UserRole } from "src/core/domain/entities/user.entity";
 import { Vehicle } from "src/core/domain/entities/vehicle.entity";
 import { Customer } from "src/core/domain/entities/customer.entity";
 import { PaginatedResponse, buildPaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
+import { EventsService } from "src/core/application/services/events/events.service";
+import { LoyaltyService } from "../loyalty/loyalty.service";
 
 @Injectable()
 export class CarWashService {
@@ -19,6 +21,9 @@ export class CarWashService {
     private vehicleRepository: Repository<Vehicle>,
     @InjectRepository(Customer)
     private customerRepository: Repository<Customer>,
+    private eventsService: EventsService,
+    @Inject(forwardRef(() => LoyaltyService))
+    private loyaltyService: LoyaltyService,
   ) {}
 
   async create(createCarWashDTO: CreateCarWashDTO, shopId: number): Promise<CarWash> {
@@ -55,18 +60,92 @@ export class CarWashService {
       employees,
     });
 
-    return await this.carWashRepository.save(carWash);
+    const savedWash = await this.carWashRepository.save(carWash);
+
+    this.eventsService.emitToShop(shopId, 'wash-created', {
+      id: savedWash.id,
+      vehicleId: savedWash.vehicleId,
+      customerId: savedWash.customerId,
+      serviceType: savedWash.serviceType,
+      amount: savedWash.amount,
+      paymentStatus: savedWash.paymentStatus,
+      dateTime: savedWash.dateTime,
+    });
+
+    // Adicionar ponto ao programa de fidelidade se houver programa ativo
+    try {
+      const program = await this.loyaltyService.getProgram(shopId);
+      if (program && program.isActive) {
+        await this.loyaltyService.earnPoints(customer.id, shopId, savedWash.id);
+
+        // Verificar se cliente completou o programa
+        const cardStatus = await this.loyaltyService.getCardStatus(customer.id, shopId);
+        if (cardStatus && cardStatus.canRedeem) {
+          this.eventsService.emitToShop(shopId, 'loyalty-reward-ready', {
+            customerId: customer.id,
+            customerName: customer.name,
+            currentPoints: cardStatus.currentPoints,
+            washesRequired: cardStatus.washesRequired,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao adicionar ponto ao programa de fidelidade:", error);
+    }
+
+    return savedWash;
   }
 
-  async findAll(shopId: number, page = 1, limit = 10): Promise<PaginatedResponse<CarWash>> {
+  async findAll(
+    shopId: number,
+    page = 1,
+    limit = 10,
+    search?: string,
+    startDate?: string,
+    endDate?: string,
+    status?: string,
+    serviceType?: string,
+    sortBy = "dateTime",
+    sortOrder: "ASC" | "DESC" = "DESC",
+  ): Promise<PaginatedResponse<CarWash>> {
     const skip = (page - 1) * limit;
-    const [data, total] = await this.carWashRepository.findAndCount({
-      where: { shopId },
-      relations: ["vehicle", "customer", "employees"],
-      order: { dateTime: "DESC" },
-      skip,
-      take: limit,
-    });
+
+    const qb = this.carWashRepository
+      .createQueryBuilder("cw")
+      .leftJoinAndSelect("cw.vehicle", "vehicle")
+      .leftJoinAndSelect("cw.customer", "customer")
+      .leftJoinAndSelect("cw.employees", "employees")
+      .where("cw.shopId = :shopId", { shopId });
+
+    if (search?.trim()) {
+      const term = `%${search.trim()}%`;
+      qb.andWhere(
+        "(vehicle.licensePlate ILIKE :term OR vehicle.model ILIKE :term OR customer.name ILIKE :term)",
+        { term },
+      );
+    }
+
+    if (startDate) {
+      qb.andWhere("cw.dateTime >= :startDate", { startDate: new Date(startDate) });
+    }
+
+    if (endDate) {
+      qb.andWhere("cw.dateTime <= :endDate", { endDate: new Date(endDate) });
+    }
+
+    if (status) {
+      qb.andWhere("cw.paymentStatus = :status", { status });
+    }
+
+    if (serviceType) {
+      qb.andWhere("cw.serviceType = :serviceType", { serviceType });
+    }
+
+    const validSortFields = ["dateTime", "amount", "paymentStatus", "serviceType"];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "dateTime";
+    qb.orderBy(`cw.${sortField}`, sortOrder);
+
+    const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
     return buildPaginatedResponse(data, total, page, limit);
   }
 
@@ -124,7 +203,22 @@ export class CarWashService {
 
   async updateStatus(id: number, status: "paid" | "pending", shopId: number): Promise<CarWash> {
     await this.carWashRepository.update({ id, shopId }, { paymentStatus: status as any });
-    return await this.findOne(id, shopId);
+    const updatedWash = await this.findOne(id, shopId);
+
+    this.eventsService.emitToShop(shopId, 'payment-updated', {
+      id: updatedWash.id,
+      paymentStatus: updatedWash.paymentStatus,
+      amount: updatedWash.amount,
+    });
+
+    if (status === 'paid') {
+      this.eventsService.emitToShop(shopId, 'wash-completed', {
+        id: updatedWash.id,
+        amount: updatedWash.amount,
+      });
+    }
+
+    return updatedWash;
   }
 
   async updatePayment(
@@ -141,11 +235,54 @@ export class CarWashService {
     if (payload.paymentMethod != null) update.paymentMethod = payload.paymentMethod as any;
     if (payload.paymentStatus != null) update.paymentStatus = payload.paymentStatus as any;
     await this.carWashRepository.update({ id, shopId }, update);
-    return await this.findOne(id, shopId);
+    const updatedWash = await this.findOne(id, shopId);
+
+    this.eventsService.emitToShop(shopId, 'payment-updated', {
+      id: updatedWash.id,
+      paymentStatus: updatedWash.paymentStatus,
+      amount: updatedWash.amount,
+      paymentMethod: updatedWash.paymentMethod,
+    });
+
+    return updatedWash;
   }
 
   async remove(id: number, shopId: number): Promise<void> {
     await this.carWashRepository.softDelete({ id, shopId });
+  }
+
+  async addPhotos(
+    id: number,
+    photoUrls: string[],
+    type: 'before' | 'after',
+    shopId: number,
+  ): Promise<CarWash> {
+    const wash = await this.carWashRepository.findOne({ where: { id, shopId } });
+    if (!wash) {
+      throw new BadRequestException("Lavagem não encontrada ou não pertence à loja");
+    }
+
+    if (type === 'before') {
+      wash.photosBefore = [...(wash.photosBefore || []), ...photoUrls];
+    } else {
+      wash.photosAfter = [...(wash.photosAfter || []), ...photoUrls];
+    }
+
+    await this.carWashRepository.save(wash);
+    return await this.findOne(id, shopId);
+  }
+
+  async removePhoto(id: number, photoUrl: string, shopId: number): Promise<CarWash> {
+    const wash = await this.carWashRepository.findOne({ where: { id, shopId } });
+    if (!wash) {
+      throw new BadRequestException("Lavagem não encontrada ou não pertence à loja");
+    }
+
+    wash.photosBefore = (wash.photosBefore || []).filter(url => url !== photoUrl);
+    wash.photosAfter = (wash.photosAfter || []).filter(url => url !== photoUrl);
+
+    await this.carWashRepository.save(wash);
+    return await this.findOne(id, shopId);
   }
 
   async getChartData(shopId: number | null, days: number): Promise<{

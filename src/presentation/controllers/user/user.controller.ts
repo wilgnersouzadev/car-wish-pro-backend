@@ -56,16 +56,35 @@ export class UserController {
   @ApiQuery({ name: "role", enum: UserRole, required: false, description: "Filtrar por role" })
   @ApiQuery({ name: "shopId", required: false, description: "Filtrar por loja específica (apenas super admin)" })
   @ApiQuery({ name: "search", required: false, description: "Busca aproximada por nome ou email (ILIKE)" })
+  @ApiQuery({ name: "startDate", required: false, description: "Data inicial para filtro (ISO 8601)" })
+  @ApiQuery({ name: "endDate", required: false, description: "Data final para filtro (ISO 8601)" })
+  @ApiQuery({ name: "sortBy", required: false, description: "Campo para ordenação (name, email, createdAt, etc)" })
+  @ApiQuery({ name: "sortOrder", required: false, description: "Ordem de ordenação (ASC ou DESC)" })
   @ApiResponse({ status: 200, description: "Lista de usuários paginada" })
   async findAll(
     @ShopId() shopId: number | null,
     @Query("role") role?: UserRole,
     @Query("search") search?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: "ASC" | "DESC",
     @CurrentUser() user?: any,
     @Query() pagination?: PaginationDTO,
   ): Promise<PaginatedResponse<Omit<User, "password">>> {
     const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
-    return await this.userService.findAll(shopId, role, isSuperAdmin, search, pagination?.page, pagination?.limit);
+    return await this.userService.findAll(
+      shopId,
+      role,
+      isSuperAdmin,
+      search,
+      pagination?.page,
+      pagination?.limit,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+    );
   }
 
   @Get(":id")

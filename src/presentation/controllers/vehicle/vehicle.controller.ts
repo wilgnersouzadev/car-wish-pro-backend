@@ -35,12 +35,29 @@ export class VehicleController {
   @Get()
   @ApiOperation({ summary: "Listar todos os veículos da loja" })
   @ApiQuery({ name: "search", required: false, description: "Busca aproximada por placa, modelo, cor ou nome do cliente (ILIKE)" })
+  @ApiQuery({ name: "startDate", required: false, description: "Data inicial para filtro (ISO 8601)" })
+  @ApiQuery({ name: "endDate", required: false, description: "Data final para filtro (ISO 8601)" })
+  @ApiQuery({ name: "sortBy", required: false, description: "Campo para ordenação (licensePlate, model, createdAt, etc)" })
+  @ApiQuery({ name: "sortOrder", required: false, description: "Ordem de ordenação (ASC ou DESC)" })
   async findAll(
     @ShopId() shopId: number,
     @Query("search") search?: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: "ASC" | "DESC",
     @Query() pagination?: PaginationDTO,
   ): Promise<PaginatedResponse<Vehicle>> {
-    return await this.vehicleService.findAll(shopId, search, pagination?.page, pagination?.limit);
+    return await this.vehicleService.findAll(
+      shopId,
+      search,
+      pagination?.page,
+      pagination?.limit,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+    );
   }
 
   @Get("plate/:plate")

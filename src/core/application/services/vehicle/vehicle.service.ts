@@ -36,34 +36,45 @@ export class VehicleService {
     return await this.vehicleRepository.save(vehicle);
   }
 
-  async findAll(shopId: number, search?: string, page = 1, limit = 10): Promise<PaginatedResponse<Vehicle>> {
+  async findAll(
+    shopId: number,
+    search?: string,
+    page = 1,
+    limit = 10,
+    startDate?: string,
+    endDate?: string,
+    sortBy = "createdAt",
+    sortOrder: "ASC" | "DESC" = "DESC",
+  ): Promise<PaginatedResponse<Vehicle>> {
     const skip = (page - 1) * limit;
+
+    const qb = this.vehicleRepository
+      .createQueryBuilder("v")
+      .leftJoinAndSelect("v.customer", "customer")
+      .leftJoinAndSelect("v.carWashes", "carWashes")
+      .where("v.shopId = :shopId", { shopId });
 
     if (search?.trim()) {
       const term = `%${search.trim()}%`;
-      const [data, total] = await this.vehicleRepository
-        .createQueryBuilder("v")
-        .leftJoinAndSelect("v.customer", "customer")
-        .leftJoinAndSelect("v.carWashes", "carWashes")
-        .where("v.shopId = :shopId", { shopId })
-        .andWhere(
-          "(v.licensePlate ILIKE :term OR v.model ILIKE :term OR v.color ILIKE :term OR customer.name ILIKE :term)",
-          { term },
-        )
-        .orderBy("v.createdAt", "DESC")
-        .skip(skip)
-        .take(limit)
-        .getManyAndCount();
-      return buildPaginatedResponse(data, total, page, limit);
+      qb.andWhere(
+        "(v.licensePlate ILIKE :term OR v.model ILIKE :term OR v.color ILIKE :term OR customer.name ILIKE :term)",
+        { term },
+      );
     }
 
-    const [data, total] = await this.vehicleRepository.findAndCount({
-      where: { shopId },
-      relations: ["customer", "carWashes"],
-      order: { createdAt: "DESC" },
-      skip,
-      take: limit,
-    });
+    if (startDate) {
+      qb.andWhere("v.createdAt >= :startDate", { startDate: new Date(startDate) });
+    }
+
+    if (endDate) {
+      qb.andWhere("v.createdAt <= :endDate", { endDate: new Date(endDate) });
+    }
+
+    const validSortFields = ["licensePlate", "model", "color", "createdAt", "updatedAt"];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    qb.orderBy(`v.${sortField}`, sortOrder);
+
+    const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
     return buildPaginatedResponse(data, total, page, limit);
   }
 
