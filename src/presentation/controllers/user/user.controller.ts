@@ -19,6 +19,8 @@ import { CurrentUser } from "src/core/application/decorators/current-user.decora
 import { Public } from "src/core/application/decorators/public.decorator";
 import { Roles } from "src/core/application/guards/roles.guard";
 import { RolesGuard } from "src/core/application/guards/roles.guard";
+import { PaginationDTO } from "src/presentation/dtos/pagination/pagination.dto";
+import { PaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @ApiTags("Users")
 @Controller("users")
@@ -54,15 +56,16 @@ export class UserController {
   @ApiQuery({ name: "role", enum: UserRole, required: false, description: "Filtrar por role" })
   @ApiQuery({ name: "shopId", required: false, description: "Filtrar por loja específica (apenas super admin)" })
   @ApiQuery({ name: "search", required: false, description: "Busca aproximada por nome ou email (ILIKE)" })
-  @ApiResponse({ status: 200, description: "Lista de usuários" })
+  @ApiResponse({ status: 200, description: "Lista de usuários paginada" })
   async findAll(
     @ShopId() shopId: number | null,
     @Query("role") role?: UserRole,
     @Query("search") search?: string,
     @CurrentUser() user?: any,
-  ): Promise<Omit<User, "password">[]> {
+    @Query() pagination?: PaginationDTO,
+  ): Promise<PaginatedResponse<Omit<User, "password">>> {
     const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
-    return await this.userService.findAll(shopId, role, isSuperAdmin, search);
+    return await this.userService.findAll(shopId, role, isSuperAdmin, search, pagination?.page, pagination?.limit);
   }
 
   @Get(":id")

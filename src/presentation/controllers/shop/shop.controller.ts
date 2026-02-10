@@ -11,6 +11,8 @@ import { RolesGuard } from "src/core/application/guards/roles.guard";
 import { UserRole } from "src/core/domain/entities/user.entity";
 import { ShopId } from "src/core/application/decorators/shop-id.decorator";
 import { CurrentUser } from "src/core/application/decorators/current-user.decorator";
+import { PaginationDTO } from "src/presentation/dtos/pagination/pagination.dto";
+import { PaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @ApiTags("Shops")
 @Controller("shops")
@@ -32,15 +34,16 @@ export class ShopController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiOperation({ summary: "Listar lojas (super admin vê todas, admin vê apenas a sua)" })
   @ApiQuery({ name: "shopId", required: false, description: "Filtrar por loja específica (apenas super admin)" })
-  @ApiResponse({ status: 200, description: "Lista de lojas" })
+  @ApiResponse({ status: 200, description: "Lista de lojas paginada" })
   async findAll(
     @ShopId() shopId: number | null,
     @CurrentUser() user: any,
-  ): Promise<Shop[]> {
+    @Query() pagination?: PaginationDTO,
+  ): Promise<PaginatedResponse<Shop>> {
     if (user.role === UserRole.SUPER_ADMIN) {
-      return await this.shopService.findAll(shopId);
+      return await this.shopService.findAll(null, undefined, pagination?.page, pagination?.limit);
     }
-    return await this.shopService.findAll(null, user.sub);
+    return await this.shopService.findAll(null, user.sub, pagination?.page, pagination?.limit);
   }
 
   @Post()

@@ -6,6 +6,7 @@ import { CreateCarWashDTO } from "src/presentation/dtos/washing/create-washing.d
 import { User, UserRole } from "src/core/domain/entities/user.entity";
 import { Vehicle } from "src/core/domain/entities/vehicle.entity";
 import { Customer } from "src/core/domain/entities/customer.entity";
+import { PaginatedResponse, buildPaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @Injectable()
 export class CarWashService {
@@ -57,12 +58,16 @@ export class CarWashService {
     return await this.carWashRepository.save(carWash);
   }
 
-  async findAll(shopId: number): Promise<CarWash[]> {
-    return await this.carWashRepository.find({
+  async findAll(shopId: number, page = 1, limit = 10): Promise<PaginatedResponse<CarWash>> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await this.carWashRepository.findAndCount({
       where: { shopId },
       relations: ["vehicle", "customer", "employees"],
       order: { dateTime: "DESC" },
+      skip,
+      take: limit,
     });
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async findOne(id: number, shopId: number): Promise<CarWash> {
@@ -141,5 +146,53 @@ export class CarWashService {
 
   async remove(id: number, shopId: number): Promise<void> {
     await this.carWashRepository.softDelete({ id, shopId });
+  }
+
+  async getChartData(shopId: number | null, days: number): Promise<{
+    dailyRevenue: Array<{ date: string; revenue: number; count: number }>;
+    washesByType: Record<string, number>;
+  }> {
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    let washes: CarWash[];
+    if (shopId === null) {
+      washes = await this.findByDateRangeAllShops(startDate, endDate, null);
+    } else {
+      washes = await this.findByDateRange(startDate, endDate, shopId);
+    }
+
+    const dailyMap = new Map<string, { revenue: number; count: number }>();
+    const typeMap: Record<string, number> = { simples: 0, completa: 0, polimento: 0 };
+
+    for (const wash of washes) {
+      const dateKey = new Date(wash.dateTime).toISOString().split('T')[0];
+      const existing = dailyMap.get(dateKey) || { revenue: 0, count: 0 };
+      existing.count++;
+      if (wash.paymentStatus === 'paid') {
+        existing.revenue += Number(wash.amount || 0);
+      }
+      dailyMap.set(dateKey, existing);
+
+      const type = wash.serviceType as string;
+      if (typeMap[type] !== undefined) {
+        typeMap[type]++;
+      }
+    }
+
+    const dailyRevenue: Array<{ date: string; revenue: number; count: number }> = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      const dateKey = d.toISOString().split('T')[0];
+      const data = dailyMap.get(dateKey) || { revenue: 0, count: 0 };
+      dailyRevenue.push({ date: dateKey, revenue: data.revenue, count: data.count });
+    }
+
+    return { dailyRevenue, washesByType: typeMap };
   }
 }

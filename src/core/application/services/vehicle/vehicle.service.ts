@@ -4,6 +4,7 @@ import { Repository, ILike } from "typeorm";
 import { Vehicle } from "src/core/domain/entities/vehicle.entity";
 import { Customer } from "src/core/domain/entities/customer.entity";
 import { CreateVehicleDTO } from "src/presentation/dtos/vehicle/create-vehicle.dto";
+import { PaginatedResponse, buildPaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @Injectable()
 export class VehicleService {
@@ -35,10 +36,12 @@ export class VehicleService {
     return await this.vehicleRepository.save(vehicle);
   }
 
-  async findAll(shopId: number, search?: string): Promise<Vehicle[]> {
+  async findAll(shopId: number, search?: string, page = 1, limit = 10): Promise<PaginatedResponse<Vehicle>> {
+    const skip = (page - 1) * limit;
+
     if (search?.trim()) {
       const term = `%${search.trim()}%`;
-      return await this.vehicleRepository
+      const [data, total] = await this.vehicleRepository
         .createQueryBuilder("v")
         .leftJoinAndSelect("v.customer", "customer")
         .leftJoinAndSelect("v.carWashes", "carWashes")
@@ -48,13 +51,20 @@ export class VehicleService {
           { term },
         )
         .orderBy("v.createdAt", "DESC")
-        .getMany();
+        .skip(skip)
+        .take(limit)
+        .getManyAndCount();
+      return buildPaginatedResponse(data, total, page, limit);
     }
-    return await this.vehicleRepository.find({
+
+    const [data, total] = await this.vehicleRepository.findAndCount({
       where: { shopId },
       relations: ["customer", "carWashes"],
       order: { createdAt: "DESC" },
+      skip,
+      take: limit,
     });
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async findOne(id: number, shopId: number): Promise<Vehicle> {

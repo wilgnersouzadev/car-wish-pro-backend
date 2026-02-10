@@ -186,4 +186,15 @@ export class DashboardController {
       myCommission,
     };
   }
+
+  @Get("charts")
+  @ApiOperation({
+    summary: "Dados para gráficos do dashboard",
+    description: "Retorna séries temporais de receita e lavagens por tipo.",
+  })
+  @ApiQuery({ name: "days", required: false, description: "Número de dias (padrão: 7)" })
+  async getCharts(@ShopId() shopId: number | null, @Query("days") days?: string) {
+    const numDays = days ? Number.parseInt(days, 10) : 7;
+    return await this.carWashService.getChartData(shopId, numDays);
+  }
 }

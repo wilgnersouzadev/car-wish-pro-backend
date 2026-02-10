@@ -14,6 +14,8 @@ import { CustomerService } from "src/core/application/services/customer/customer
 import { CreateCustomerDTO } from "src/presentation/dtos/customer/create-customer.dto";
 import { Customer } from "src/core/domain/entities/customer.entity";
 import { ShopId } from "src/core/application/decorators/shop-id.decorator";
+import { PaginationDTO } from "src/presentation/dtos/pagination/pagination.dto";
+import { PaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @ApiTags("Customers")
 @Controller("customers")
@@ -34,12 +36,13 @@ export class CustomerController {
   @Get()
   @ApiOperation({ summary: "Listar todos os clientes da loja" })
   @ApiQuery({ name: "search", required: false, description: "Busca aproximada por nome, telefone ou observações (ILIKE)" })
-  @ApiResponse({ status: 200, description: "Lista de clientes" })
+  @ApiResponse({ status: 200, description: "Lista de clientes paginada" })
   async findAll(
     @ShopId() shopId: number,
     @Query("search") search?: string,
-  ): Promise<Customer[]> {
-    return await this.customerService.findAll(shopId, search);
+    @Query() pagination?: PaginationDTO,
+  ): Promise<PaginatedResponse<Customer>> {
+    return await this.customerService.findAll(shopId, search, pagination?.page, pagination?.limit);
   }
 
   @Get(":id")

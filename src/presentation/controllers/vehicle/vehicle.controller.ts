@@ -14,6 +14,8 @@ import { VehicleService } from "src/core/application/services/vehicle/vehicle.se
 import { CreateVehicleDTO } from "src/presentation/dtos/vehicle/create-vehicle.dto";
 import { Vehicle } from "src/core/domain/entities/vehicle.entity";
 import { ShopId } from "src/core/application/decorators/shop-id.decorator";
+import { PaginationDTO } from "src/presentation/dtos/pagination/pagination.dto";
+import { PaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @ApiTags("Vehicles")
 @Controller("vehicles")
@@ -36,8 +38,9 @@ export class VehicleController {
   async findAll(
     @ShopId() shopId: number,
     @Query("search") search?: string,
-  ): Promise<Vehicle[]> {
-    return await this.vehicleService.findAll(shopId, search);
+    @Query() pagination?: PaginationDTO,
+  ): Promise<PaginatedResponse<Vehicle>> {
+    return await this.vehicleService.findAll(shopId, search, pagination?.page, pagination?.limit);
   }
 
   @Get("plate/:plate")

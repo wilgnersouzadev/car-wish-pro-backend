@@ -16,6 +16,8 @@ import { CreateCarWashDTO } from "src/presentation/dtos/washing/create-washing.d
 import { UpdatePaymentDto } from "src/presentation/dtos/washing/update-payment.dto";
 import { CarWash } from "src/core/domain/entities/car-wash.entity";
 import { ShopId } from "src/core/application/decorators/shop-id.decorator";
+import { PaginationDTO } from "src/presentation/dtos/pagination/pagination.dto";
+import { PaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @ApiTags("Car Washes")
 @Controller("car-washes")
@@ -38,7 +40,8 @@ export class WashingController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
     @ShopId() shopId?: number,
-  ): Promise<CarWash[]> {
+    @Query() pagination?: PaginationDTO,
+  ): Promise<PaginatedResponse<CarWash> | CarWash[]> {
     if (startDate && endDate && shopId) {
       return await this.carWashService.findByDateRange(
         new Date(startDate),
@@ -46,7 +49,7 @@ export class WashingController {
         shopId,
       );
     }
-    return await this.carWashService.findAll(shopId);
+    return await this.carWashService.findAll(shopId, pagination?.page, pagination?.limit);
   }
 
   @Get(":id")

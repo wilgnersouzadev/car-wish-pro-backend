@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Customer } from "src/core/domain/entities/customer.entity";
 import { CreateCustomerDTO } from "src/presentation/dtos/customer/create-customer.dto";
+import { PaginatedResponse, buildPaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @Injectable()
 export class CustomerService {
@@ -16,10 +17,12 @@ export class CustomerService {
     return await this.customerRepository.save(customer);
   }
 
-  async findAll(shopId: number, search?: string): Promise<Customer[]> {
+  async findAll(shopId: number, search?: string, page = 1, limit = 10): Promise<PaginatedResponse<Customer>> {
+    const skip = (page - 1) * limit;
+
     if (search?.trim()) {
       const term = `%${search.trim()}%`;
-      return await this.customerRepository
+      const [data, total] = await this.customerRepository
         .createQueryBuilder("customer")
         .leftJoinAndSelect("customer.vehicles", "vehicles")
         .leftJoinAndSelect("customer.washes", "washes")
@@ -29,13 +32,20 @@ export class CustomerService {
           { term },
         )
         .orderBy("customer.name", "ASC")
-        .getMany();
+        .skip(skip)
+        .take(limit)
+        .getManyAndCount();
+      return buildPaginatedResponse(data, total, page, limit);
     }
-    return await this.customerRepository.find({
+
+    const [data, total] = await this.customerRepository.findAndCount({
       where: { shopId },
       relations: ["vehicles", "washes"],
       order: { name: "ASC" },
+      skip,
+      take: limit,
     });
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async findOne(id: number, shopId: number): Promise<Customer> {

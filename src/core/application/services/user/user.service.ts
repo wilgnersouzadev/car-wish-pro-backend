@@ -4,6 +4,7 @@ import * as bcrypt from "bcrypt";
 import { Repository, ILike } from "typeorm";
 import { User, UserRole } from "src/core/domain/entities/user.entity";
 import { CreateUserDTO } from "src/presentation/dtos/user/create-user.dto";
+import { PaginatedResponse, buildPaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @Injectable()
 export class UserService {
@@ -46,7 +47,10 @@ export class UserService {
     role?: UserRole,
     isSuperAdmin = false,
     search?: string,
-  ): Promise<Omit<User, "password">[]> {
+    page = 1,
+    limit = 10,
+  ): Promise<PaginatedResponse<Omit<User, "password">>> {
+    const skip = (page - 1) * limit;
     const qb = this.userRepository.createQueryBuilder("user").orderBy("user.createdAt", "DESC");
     if (!isSuperAdmin && shopId !== null) {
       qb.andWhere("user.shopId = :shopId", { shopId });
@@ -58,7 +62,8 @@ export class UserService {
       const term = `%${search.trim()}%`;
       qb.andWhere("(user.name ILIKE :term OR user.email ILIKE :term)", { term });
     }
-    return await qb.getMany();
+    const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async findOne(id: number, shopId: number | null, isSuperAdmin = false): Promise<Omit<User, "password">> {

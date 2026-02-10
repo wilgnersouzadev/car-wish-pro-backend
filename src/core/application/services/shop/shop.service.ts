@@ -6,6 +6,7 @@ import { Shop } from "src/core/domain/entities/shop.entity";
 import { User, UserRole } from "src/core/domain/entities/user.entity";
 import { CreateShopDTO } from "src/presentation/dtos/shop/create-shop.dto";
 import { RegisterOwnerDTO } from "src/presentation/dtos/shop/register-owner.dto";
+import { PaginatedResponse, buildPaginatedResponse } from "src/presentation/dtos/pagination/paginated-response.dto";
 
 @Injectable()
 export class ShopService {
@@ -144,12 +145,17 @@ export class ShopService {
     return shop;
   }
 
-  async findAll(shopId?: number | null, userId?: number): Promise<Shop[]> {
+  async findAll(shopId?: number | null, userId?: number, page = 1, limit = 10): Promise<PaginatedResponse<Shop>> {
+    const skip = (page - 1) * limit;
+
     if (shopId !== null && shopId !== undefined) {
-      return await this.shopRepository.find({
+      const [data, total] = await this.shopRepository.findAndCount({
         where: { id: shopId },
         order: { createdAt: "DESC" },
+        skip,
+        take: limit,
       });
+      return buildPaginatedResponse(data, total, page, limit);
     }
 
     if (userId) {
@@ -157,12 +163,18 @@ export class ShopService {
         where: { id: userId },
         relations: ["shops"],
       });
-      return user?.shops || [];
+      const allShops = user?.shops || [];
+      const total = allShops.length;
+      const data = allShops.slice(skip, skip + limit);
+      return buildPaginatedResponse(data, total, page, limit);
     }
 
-    return await this.shopRepository.find({
+    const [data, total] = await this.shopRepository.findAndCount({
       order: { createdAt: "DESC" },
+      skip,
+      take: limit,
     });
+    return buildPaginatedResponse(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<Shop> {
