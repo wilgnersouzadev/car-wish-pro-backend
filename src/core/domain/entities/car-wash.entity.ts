@@ -65,6 +65,12 @@ export class CarWash extends BaseEntity {
   @Column({ type: "text", nullable: true })
   notes?: string;
 
+  @Column({ type: "text", array: true, default: [], nullable: true })
+  photosBefore?: string[];
+
+  @Column({ type: "text", array: true, default: [], nullable: true })
+  photosAfter?: string[];
+
   @ManyToOne(() => Vehicle, (vehicle) => vehicle.carWashes)
   @JoinColumn({ name: "vehicleId" })
   vehicle: Vehicle;

@@ -16,6 +16,9 @@ export class Shop extends BaseEntity {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ type: "text", nullable: true })
+  logoUrl?: string;
+
   /** Usuários que estão usando esta loja no momento (contexto atual) */
   @OneToMany(() => User, (user) => user.currentShop)
   currentUsers: User[];
