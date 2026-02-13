@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Inject, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, In, Between } from "typeorm";
+import { randomUUID } from "crypto";
 import { CarWash } from "src/core/domain/entities/car-wash.entity";
 import { CreateCarWashDTO } from "src/presentation/dtos/washing/create-washing.dto";
 import { User, UserRole } from "src/core/domain/entities/user.entity";
@@ -57,10 +58,22 @@ export class CarWashService {
       ...createCarWashDTO,
       shopId,
       dateTime: new Date(),
+      trackingToken: randomUUID(),
       employees,
     });
 
     const savedWash = await this.carWashRepository.save(carWash);
+
+    // Buscar dados completos para enviar WhatsApp
+    const washWithRelations = await this.carWashRepository.findOne({
+      where: { id: savedWash.id },
+      relations: ['vehicle', 'customer', 'shop'],
+    });
+
+    // Enviar WhatsApp com link de tracking
+    if (washWithRelations) {
+     
+    }
 
     this.eventsService.emitToShop(shopId, 'wash-created', {
       id: savedWash.id,

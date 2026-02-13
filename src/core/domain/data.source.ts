@@ -11,6 +11,7 @@ import { LoyaltyProgram } from "./entities/loyalty-program.entity";
 import { LoyaltyCard } from "./entities/loyalty-card.entity";
 import { LoyaltyTransaction } from "./entities/loyalty-transaction.entity";
 import { Notification } from "./entities/notification.entity";
+import { Review } from "./entities/review.entity";
 
 const configService = new ConfigService();
 
@@ -33,6 +34,7 @@ export const DatabaseDataSource: DataSourceOptions = {
     LoyaltyCard,
     LoyaltyTransaction,
     Notification,
+    Review,
   ],
   migrations: [__dirname + "/migrations/*.ts"],
   synchronize: false,

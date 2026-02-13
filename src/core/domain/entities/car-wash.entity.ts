@@ -22,6 +22,14 @@ export enum PaymentStatus {
   PENDING = "pending",
 }
 
+export enum WashStatus {
+  WAITING = "waiting",           // Aguardando início
+  IN_PROGRESS = "in_progress",   // Em lavagem
+  COMPLETED = "completed",       // Concluída
+  READY_PICKUP = "ready_pickup", // Pronta para retirada
+  DELIVERED = "delivered",       // Entregue ao cliente
+}
+
 @Entity("car_washes")
 export class CarWash extends BaseEntity {
   @Column()
@@ -70,6 +78,22 @@ export class CarWash extends BaseEntity {
 
   @Column({ type: "text", array: true, default: [], nullable: true })
   photosAfter?: string[];
+
+  @Column({ type: "varchar", unique: true, nullable: false })
+  trackingToken: string;
+
+  @Column({
+    type: "enum",
+    enum: WashStatus,
+    default: WashStatus.WAITING,
+  })
+  washStatus: WashStatus;
+
+  @Column({ type: "timestamp", nullable: true })
+  startedAt?: Date;
+
+  @Column({ type: "timestamp", nullable: true })
+  completedAt?: Date;
 
   @ManyToOne(() => Vehicle, (vehicle) => vehicle.carWashes)
   @JoinColumn({ name: "vehicleId" })

@@ -13,6 +13,7 @@ import { Appointment } from "src/core/domain/entities/appointment.entity";
 import { LoyaltyProgram } from "src/core/domain/entities/loyalty-program.entity";
 import { LoyaltyCard } from "src/core/domain/entities/loyalty-card.entity";
 import { LoyaltyTransaction } from "src/core/domain/entities/loyalty-transaction.entity";
+import { Review } from "src/core/domain/entities/review.entity";
 
 import { CustomerModule } from "src/presentation/controllers/customer/customer.module";
 import { UserModule } from "src/presentation/controllers/user/user.module";
@@ -27,6 +28,9 @@ import { WebsocketsModule } from "src/presentation/websockets/websockets.module"
 import { UploadsModule } from "src/presentation/controllers/uploads/uploads.module";
 import { AppointmentModule } from "src/presentation/controllers/appointment/appointment.module";
 import { LoyaltyModule } from "src/presentation/controllers/loyalty/loyalty.module";
+import { TrackingModule } from "src/presentation/controllers/tracking/tracking.module";
+import { PatioModule } from "src/presentation/controllers/patio/patio.module";
+import { ReviewModule } from "src/presentation/controllers/review/review.module";
 import { AppController } from "./app.controller";
 import { APP_GUARD } from "@nestjs/core";
 import { JwtAuthGuard } from "src/core/application/guards/jwt-auth.guard";
@@ -50,6 +54,7 @@ import { TenantGuard } from "src/core/application/guards/tenant.guard";
       LoyaltyProgram,
       LoyaltyCard,
       LoyaltyTransaction,
+      Review,
     ]),
     AuthModule,
     ShopModule,
@@ -64,6 +69,9 @@ import { TenantGuard } from "src/core/application/guards/tenant.guard";
     UploadsModule,
     AppointmentModule,
     LoyaltyModule,
+    TrackingModule,
+    PatioModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [
