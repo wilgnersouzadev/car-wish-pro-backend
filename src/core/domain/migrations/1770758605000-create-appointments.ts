@@ -74,7 +74,6 @@ export class CreateAppointments1770758605000 implements MigrationInterface {
       true,
     );
 
-    // Foreign Keys
     await queryRunner.createForeignKey(
       "appointments",
       new TableForeignKey({
@@ -115,7 +114,6 @@ export class CreateAppointments1770758605000 implements MigrationInterface {
       }),
     );
 
-    // Indexes para melhorar performance
     await queryRunner.query(
       `CREATE INDEX idx_appointments_shop_date ON appointments("shopId", "scheduledDate")`,
     );

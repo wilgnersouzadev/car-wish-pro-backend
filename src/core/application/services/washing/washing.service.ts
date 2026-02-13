@@ -64,13 +64,11 @@ export class CarWashService {
 
     const savedWash = await this.carWashRepository.save(carWash);
 
-    // Buscar dados completos para enviar WhatsApp
     const washWithRelations = await this.carWashRepository.findOne({
       where: { id: savedWash.id },
       relations: ['vehicle', 'customer', 'shop'],
     });
 
-    // Enviar WhatsApp com link de tracking
     if (washWithRelations) {
      
     }
@@ -85,13 +83,11 @@ export class CarWashService {
       dateTime: savedWash.dateTime,
     });
 
-    // Adicionar ponto ao programa de fidelidade se houver programa ativo
     try {
       const program = await this.loyaltyService.getProgram(shopId);
       if (program && program.isActive) {
         await this.loyaltyService.earnPoints(customer.id, shopId, savedWash.id);
 
-        // Verificar se cliente completou o programa
         const cardStatus = await this.loyaltyService.getCardStatus(customer.id, shopId);
         if (cardStatus && cardStatus.canRedeem) {
           this.eventsService.emitToShop(shopId, 'loyalty-reward-ready', {

@@ -50,25 +50,20 @@ export class NotificationService {
   }
 
   private validatePhoneNumber(phone: string): string {
-    // Remove all non-digit characters
     let cleaned = phone.replace(/\D/g, "");
 
-    // If starts with 0, remove it
     if (cleaned.startsWith("0")) {
       cleaned = cleaned.substring(1);
     }
 
-    // Add country code if not present (assuming Brazil +55)
     if (!cleaned.startsWith("55")) {
       cleaned = "55" + cleaned;
     }
 
-    // Ensure it starts with +
     if (!cleaned.startsWith("+")) {
       cleaned = "+" + cleaned;
     }
 
-    // Validate format (should be +55 followed by 10 or 11 digits)
     const phoneRegex = /^\+55\d{10,11}$/;
     if (!phoneRegex.test(cleaned)) {
       throw new BadRequestException(
@@ -175,7 +170,6 @@ export class NotificationService {
       dto.washDetails,
     );
 
-    // Create notification record
     const notification = this.notificationRepository.create({
       customerId: dto.customerId,
       shopId,
@@ -188,7 +182,6 @@ export class NotificationService {
 
     await this.notificationRepository.save(notification);
 
-    // Send via Twilio
     let result: { success: boolean; messageSid?: string; error?: string };
 
     if (dto.type === NotificationType.WHATSAPP) {
@@ -197,7 +190,6 @@ export class NotificationService {
       result = await this.sendSMS(customer.phone, message);
     }
 
-    // Update notification status
     notification.status = result.success
       ? NotificationStatus.SENT
       : NotificationStatus.FAILED;

@@ -13,7 +13,6 @@ async function run(): Promise<void> {
 
   const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
-  // 1. Super Admin
   let superAdmin = await userRepo.findOne({ where: { email: "will@email.com" } });
   if (!superAdmin) {
     superAdmin = userRepo.create({

@@ -9,10 +9,9 @@ import { PaginatedResponse, buildPaginatedResponse } from "src/presentation/dtos
 
 @Injectable()
 export class AppointmentService {
-  // Configurações de horário de funcionamento
-  private readonly OPENING_HOUR = 8; // 8h
-  private readonly CLOSING_HOUR = 18; // 18h
-  private readonly SLOT_DURATION_MINUTES = 30; // 30 minutos por slot
+  private readonly OPENING_HOUR = 8;
+  private readonly CLOSING_HOUR = 18;
+  private readonly SLOT_DURATION_MINUTES = 30;
 
   constructor(
     @InjectRepository(Appointment)
@@ -24,7 +23,6 @@ export class AppointmentService {
     shopId: number,
     userId: number,
   ): Promise<Appointment> {
-    // Validar se a data não é no passado
     const appointmentDateTime = new Date(`${createAppointmentDto.scheduledDate}T${createAppointmentDto.scheduledTime}`);
     const now = new Date();
 
@@ -32,7 +30,6 @@ export class AppointmentService {
       throw new BadRequestException("Não é possível agendar para uma data/hora passada");
     }
 
-    // Validar se o horário está dentro do expediente
     const [hours] = createAppointmentDto.scheduledTime.split(":").map(Number);
     if (hours < this.OPENING_HOUR || hours >= this.CLOSING_HOUR) {
       throw new BadRequestException(
@@ -40,7 +37,6 @@ export class AppointmentService {
       );
     }
 
-    // Verificar disponibilidade
     const isAvailable = await this.checkAvailability(
       shopId,
       createAppointmentDto.scheduledDate,
@@ -122,12 +118,10 @@ export class AppointmentService {
   ): Promise<Appointment> {
     const appointment = await this.findOne(id, shopId);
 
-    // Se estiver alterando data/hora, validar disponibilidade
     if (updateAppointmentDto.scheduledDate || updateAppointmentDto.scheduledTime) {
       const newDate = updateAppointmentDto.scheduledDate || appointment.scheduledDate;
       const newTime = updateAppointmentDto.scheduledTime || appointment.scheduledTime;
 
-      // Validar se a data não é no passado
       const appointmentDateTime = new Date(`${newDate}T${newTime}`);
       const now = new Date();
 
@@ -135,7 +129,6 @@ export class AppointmentService {
         throw new BadRequestException("Não é possível agendar para uma data/hora passada");
       }
 
-      // Validar horário de funcionamento
       const [hours] = newTime.split(":").map(Number);
       if (hours < this.OPENING_HOUR || hours >= this.CLOSING_HOUR) {
         throw new BadRequestException(
@@ -143,7 +136,6 @@ export class AppointmentService {
         );
       }
 
-      // Verificar disponibilidade (excluindo o próprio agendamento)
       const isAvailable = await this.checkAvailability(shopId, newDate, newTime, id);
       if (!isAvailable) {
         throw new BadRequestException("Horário não disponível");
@@ -155,7 +147,7 @@ export class AppointmentService {
   }
 
   async remove(id: number, shopId: number): Promise<void> {
-    await this.findOne(id, shopId); // Verificar se existe
+    await this.findOne(id, shopId);
     await this.appointmentRepository.softDelete({ id, shopId });
   }
 
@@ -220,7 +212,6 @@ export class AppointmentService {
   }
 
   async getAvailableSlots(shopId: number, date: string): Promise<string[]> {
-    // Validar se a data não é no passado
     const targetDate = new Date(date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -230,7 +221,6 @@ export class AppointmentService {
     const currentHour = new Date().getHours();
     const currentMinute = new Date().getMinutes();
 
-    // Buscar agendamentos existentes para o dia
     const existingAppointments = await this.appointmentRepository.find({
       where: {
         shopId,
@@ -242,21 +232,18 @@ export class AppointmentService {
 
     const bookedTimes = new Set(existingAppointments.map((a) => a.scheduledTime));
 
-    // Gerar todos os slots disponíveis
     const availableSlots: string[] = [];
 
     for (let hour = this.OPENING_HOUR; hour < this.CLOSING_HOUR; hour++) {
       for (let minute = 0; minute < 60; minute += this.SLOT_DURATION_MINUTES) {
         const timeSlot = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
 
-        // Se for hoje, não mostrar horários que já passaram
         if (isToday) {
           if (hour < currentHour || (hour === currentHour && minute <= currentMinute)) {
             continue;
           }
         }
 
-        // Verificar se o slot não está ocupado
         if (!bookedTimes.has(timeSlot)) {
           availableSlots.push(timeSlot);
         }

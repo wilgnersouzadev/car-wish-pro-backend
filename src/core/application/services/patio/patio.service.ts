@@ -12,7 +12,6 @@ export class PatioService {
   ) {}
 
   async getBoard(shopId: number) {
-    // Buscar lavagens do dia atual que ainda não foram entregues
     const today = new Date();
     const startDate = startOfDay(today);
     const endDate = endOfDay(today);
@@ -28,12 +27,10 @@ export class PatioService {
       },
     });
 
-    // Filtrar apenas lavagens não entregues
     const activeWashes = carWashes.filter(
       (wash) => wash.washStatus !== WashStatus.DELIVERED,
     );
 
-    // Agrupar por status
     const waiting = activeWashes.filter(
       (wash) => wash.washStatus === WashStatus.WAITING,
     );
@@ -46,24 +43,21 @@ export class PatioService {
         wash.washStatus === WashStatus.READY_PICKUP,
     );
 
-    // Calcular tempo estimado para cada lavagem
     const calculateEstimatedTime = (wash: CarWash) => {
       if (wash.washStatus === WashStatus.WAITING) {
-        // Tempo baseado na posição na fila
         const position = waiting.findIndex((w) => w.id === wash.id);
-        return 15 + position * 10; // 15min base + 10min por posição
+        return 15 + position * 10;
       }
       if (wash.washStatus === WashStatus.IN_PROGRESS && wash.startedAt) {
         const elapsed = Math.floor(
           (Date.now() - new Date(wash.startedAt).getTime()) / 60000,
         );
-        const estimated = 30; // Tempo médio de lavagem
+        const estimated = 30;
         return Math.max(0, estimated - elapsed);
       }
       return 0;
     };
 
-    // Formatar dados
     const formatWash = (wash: CarWash) => ({
       id: wash.id,
       trackingToken: wash.trackingToken,

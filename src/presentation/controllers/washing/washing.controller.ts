@@ -90,7 +90,6 @@ export class WashingController {
   ): Promise<CarWash> {
     const carWash = await this.carWashService.updateStatus(id, status, shopId);
 
-    // Send notification if requested and wash is marked as paid
     if (sendNotification && status === "paid") {
       try {
         await this.notificationService.sendWashCompletedNotification(
@@ -98,7 +97,6 @@ export class WashingController {
           notificationType || NotificationType.WHATSAPP,
         );
       } catch (error) {
-        // Log error but don't fail the request
         console.error("Error sending notification:", error);
       }
     }

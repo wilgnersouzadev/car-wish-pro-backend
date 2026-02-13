@@ -23,7 +23,6 @@ export class TrackingService {
       throw new NotFoundException('Lavagem não encontrada');
     }
 
-    // Calcular progresso baseado no status
     const progressMap = {
       [WashStatus.WAITING]: 0,
       [WashStatus.IN_PROGRESS]: 50,
@@ -34,15 +33,13 @@ export class TrackingService {
 
     const progress = progressMap[carWash.washStatus] || 0;
 
-    // Calcular tempo estimado
     let estimatedTimeMinutes = 0;
     if (carWash.washStatus === WashStatus.WAITING) {
-      estimatedTimeMinutes = 30; // Tempo médio de espera
+      estimatedTimeMinutes = 30;
     } else if (carWash.washStatus === WashStatus.IN_PROGRESS) {
-      estimatedTimeMinutes = 20; // Tempo estimado restante
+      estimatedTimeMinutes = 20;
     }
 
-    // Verificar se já existe review
     const existingReview = await this.reviewRepository.findOne({
       where: { carWashId: carWash.id },
     });
@@ -97,7 +94,6 @@ export class TrackingService {
     const previousStatus = carWash.washStatus;
     carWash.washStatus = status;
 
-    // Atualizar timestamps baseado no status
     if (status === WashStatus.IN_PROGRESS && !carWash.startedAt) {
       carWash.startedAt = new Date();
     }
@@ -109,16 +105,13 @@ export class TrackingService {
       carWash.completedAt = new Date();
     }
 
-    // Marcar como pago quando entregar o veículo
     if (status === WashStatus.DELIVERED) {
       carWash.paymentStatus = PaymentStatus.PAID;
     }
 
     await this.carWashRepository.save(carWash);
 
-    // Enviar WhatsApp apenas se o status mudou
     if (previousStatus !== status) {
-      // Calcular tempo estimado
       let estimatedTime: number | undefined;
       if (status === WashStatus.WAITING) {
         estimatedTime = 30;
@@ -126,20 +119,14 @@ export class TrackingService {
         estimatedTime = 20;
       }
 
-      // Enviar notificação de mudança de status
-     
-
-      // Se ficou pronto para retirada, enviar mensagem especial com valor
       if (status === WashStatus.READY_PICKUP) {
        
       }
 
-      // Se foi entregue, solicitar avaliação
       if (status === WashStatus.DELIVERED) {
-        // Aguardar 1 minuto antes de solicitar avaliação
         setTimeout(() => {
           
-        }, 60000); // 1 minuto
+        }, 60000);
       }
     }
 

@@ -71,8 +71,7 @@ export class UploadsController {
       throw new BadRequestException('No files provided');
     }
 
-    // Validate files
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
 
     for (const file of files) {
@@ -88,10 +87,8 @@ export class UploadsController {
       }
     }
 
-    // Get car wash to verify it exists and belongs to the shop
     const carWash = await this.carWashService.findOne(id, shopId);
 
-    // Upload files
     const uploadedUrls: string[] = [];
     for (const file of files) {
       const filename = `${id}-${type}-${Date.now()}-${file.originalname}`;
@@ -100,7 +97,6 @@ export class UploadsController {
       uploadedUrls.push(url);
     }
 
-    // Update car wash with new photo URLs
     await this.carWashService.addPhotos(id, uploadedUrls, type, shopId);
 
     return {
@@ -116,16 +112,12 @@ export class UploadsController {
     @Param('photoUrl') photoUrl: string,
     @ShopId() shopId: number,
   ) {
-    // Get car wash to verify it exists and belongs to the shop
     const carWash = await this.carWashService.findOne(id, shopId);
 
-    // Extract filename from URL
     const filename = photoUrl.split('/').pop();
 
-    // Delete file from storage
     await this.storageService.deleteFile('car-washes', filename);
 
-    // Remove photo URL from car wash
     await this.carWashService.removePhoto(id, photoUrl, shopId);
 
     return {
@@ -157,8 +149,7 @@ export class UploadsController {
       throw new BadRequestException('No file provided');
     }
 
-    // Validate file
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
 
     if (file.size > maxSize) {
@@ -168,30 +159,24 @@ export class UploadsController {
       throw new BadRequestException('File is not a valid image type');
     }
 
-    // Verify shop belongs to user's current shop
     if (id !== shopId) {
       throw new BadRequestException('Cannot upload logo for another shop');
     }
 
-    // Get shop to check if it has an existing logo
     const shop = await this.shopService.findOne(id);
     if (shop.logoUrl) {
-      // Delete old logo
       const oldFilename = shop.logoUrl.split('/').pop();
       try {
         await this.storageService.deleteFile('shops', oldFilename);
       } catch (error) {
-        // Log error but continue with upload
         console.error('Error deleting old logo:', error);
       }
     }
 
-    // Upload new logo
     const filename = `shop-${id}-logo-${Date.now()}-${file.originalname}`;
     await this.storageService.uploadFile(file, 'shops', filename);
     const url = await this.storageService.getFileUrl('shops', filename);
 
-    // Update shop with new logo URL
     await this.shopService.updateLogo(id, url);
 
     return {
@@ -206,24 +191,19 @@ export class UploadsController {
     @Param('id', ParseIntPipe) id: number,
     @ShopId() shopId: number,
   ) {
-    // Verify shop belongs to user's current shop
     if (id !== shopId) {
       throw new BadRequestException('Cannot delete logo for another shop');
     }
 
-    // Get shop to check if it has a logo
     const shop = await this.shopService.findOne(id);
     if (!shop.logoUrl) {
       throw new BadRequestException('Shop does not have a logo');
     }
 
-    // Extract filename from URL
     const filename = shop.logoUrl.split('/').pop();
 
-    // Delete file from storage
     await this.storageService.deleteFile('shops', filename);
 
-    // Remove logo URL from shop
     await this.shopService.updateLogo(id, null);
 
     return {

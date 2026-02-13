@@ -12,9 +12,6 @@ export interface ReportData {
 
 @Injectable()
 export class ExportService {
-  /**
-   * Gera relatório em PDF formatado profissionalmente
-   */
   async generatePdfReport(data: ReportData): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
@@ -25,7 +22,6 @@ export class ExportService {
         doc.on("end", () => resolve(Buffer.concat(chunks)));
         doc.on("error", reject);
 
-        // Header
         doc
           .fontSize(20)
           .fillColor("#1e40af")
@@ -33,7 +29,6 @@ export class ExportService {
 
         doc.moveDown(0.5);
 
-        // Informações do relatório
         doc
           .fontSize(12)
           .fillColor("#000000")
@@ -55,7 +50,6 @@ export class ExportService {
 
         doc.moveDown(2);
 
-        // Estatísticas resumidas
         const totalLavagens = data.carWashes.length;
         const faturamentoTotal = data.carWashes
           .filter((w) => w.paymentStatus === "paid")
@@ -72,7 +66,6 @@ export class ExportService {
           (w) => w.serviceType === "polish"
         ).length;
 
-        // Box de resumo
         const startY = doc.y;
         doc.rect(50, startY, 495, 100).fillAndStroke("#f3f4f6", "#d1d5db");
 
@@ -113,11 +106,9 @@ export class ExportService {
         doc.y = startY + 120;
         doc.moveDown(2);
 
-        // Tabela de lavagens
         doc.fontSize(14).fillColor("#1e40af").text("Detalhamento das Lavagens");
         doc.moveDown(1);
 
-        // Header da tabela
         const tableTop = doc.y;
         const colWidths = {
           data: 85,
@@ -130,7 +121,6 @@ export class ExportService {
 
         doc.fontSize(8).fillColor("#374151");
 
-        // Background do header
         doc
           .rect(50, tableTop, 495, 20)
           .fillAndStroke("#e5e7eb", "#d1d5db");
@@ -151,7 +141,6 @@ export class ExportService {
 
         let yPos = tableTop + 25;
 
-        // Rows da tabela
         const sortedWashes = [...data.carWashes].sort(
           (a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
         );
@@ -214,7 +203,6 @@ export class ExportService {
           yPos += 18;
         }
 
-        // Rodapé
         doc
           .fontSize(8)
           .fillColor("#9ca3af")
@@ -232,18 +220,13 @@ export class ExportService {
     });
   }
 
-  /**
-   * Gera relatório em Excel com múltiplas sheets
-   */
   async generateExcelReport(data: ReportData): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = "Car Wish";
     workbook.created = new Date();
 
-    // Sheet 1: Resumo
     const summarySheet = workbook.addWorksheet("Resumo");
 
-    // Header do resumo
     summarySheet.mergeCells("A1:D1");
     const titleCell = summarySheet.getCell("A1");
     titleCell.value = "Relatório de Lavagens";
@@ -260,7 +243,6 @@ export class ExportService {
       new Date().toLocaleString("pt-BR"),
     ];
 
-    // Estatísticas
     const totalLavagens = data.carWashes.length;
     const faturamentoTotal = data.carWashes
       .filter((w) => w.paymentStatus === "paid")
@@ -294,14 +276,12 @@ export class ExportService {
     summarySheet.addRow(["Lavagens Completas", lavagensCompletas]);
     summarySheet.addRow(["Polimentos", polimentos]);
 
-    // Formatar valores monetários
     summarySheet.getCell("B8").numFmt = 'R$ #,##0.00';
     summarySheet.getCell("B9").numFmt = 'R$ #,##0.00';
 
     summarySheet.getColumn(1).width = 25;
     summarySheet.getColumn(2).width = 20;
 
-    // Sheet 2: Lavagens Detalhadas
     const detailSheet = workbook.addWorksheet("Lavagens Detalhadas");
 
     detailSheet.columns = [
@@ -316,7 +296,6 @@ export class ExportService {
       { header: "Observações", key: "notes", width: 30 },
     ];
 
-    // Estilizar header
     const detailHeaderRow = detailSheet.getRow(1);
     detailHeaderRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
     detailHeaderRow.fill = {
@@ -343,7 +322,6 @@ export class ExportService {
       pending: "Pendente",
     };
 
-    // Adicionar dados
     const sortedWashes = [...data.carWashes].sort(
       (a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
     );
@@ -365,10 +343,8 @@ export class ExportService {
       });
     });
 
-    // Formatar coluna de valor
     detailSheet.getColumn("amount").numFmt = 'R$ #,##0.00';
 
-    // Sheet 3: Comissões por Funcionário
     const commissionSheet = workbook.addWorksheet("Comissões por Funcionário");
 
     commissionSheet.columns = [
@@ -378,7 +354,6 @@ export class ExportService {
       { header: "Comissão (10%)", key: "commission", width: 18 },
     ];
 
-    // Estilizar header
     const commHeaderRow = commissionSheet.getRow(1);
     commHeaderRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
     commHeaderRow.fill = {
@@ -388,7 +363,6 @@ export class ExportService {
     };
     commHeaderRow.alignment = { horizontal: "center", vertical: "middle" };
 
-    // Calcular comissões por funcionário
     const employeeStats = new Map<
       number,
       { name: string; washes: number; total: number }
@@ -411,7 +385,6 @@ export class ExportService {
       }
     });
 
-    // Adicionar dados de comissões
     Array.from(employeeStats.values())
       .sort((a, b) => b.total - a.total)
       .forEach((emp) => {
@@ -421,14 +394,12 @@ export class ExportService {
           totalWashes: emp.washes,
           totalAmount: emp.total,
           commission: commission,
-        });
       });
+    });
 
-    // Formatar colunas monetárias
     commissionSheet.getColumn("totalAmount").numFmt = 'R$ #,##0.00';
     commissionSheet.getColumn("commission").numFmt = 'R$ #,##0.00';
 
-    // Adicionar totais
     if (employeeStats.size > 0) {
       const totalRow = commissionSheet.lastRow.number + 2;
       commissionSheet.getCell(`A${totalRow}`).value = "TOTAL";

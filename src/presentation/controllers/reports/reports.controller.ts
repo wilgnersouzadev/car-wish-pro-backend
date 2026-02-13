@@ -45,10 +45,8 @@ export class ReportsController {
       throw new BadRequestException("Datas inválidas");
     }
 
-    // Se shopId foi passado na query, usa ele, senão usa o contexto
     const targetShopId = shopId ? Number(shopId) : contextShopId;
 
-    // Buscar dados
     const carWashes = await this.carWashService.findByDateRangeAllShops(
       start,
       end,
@@ -61,7 +59,6 @@ export class ReportsController {
       shopName = shop?.name || "Loja desconhecida";
     }
 
-    // Gerar PDF
     const pdfBuffer = await this.exportService.generatePdfReport({
       carWashes,
       shopName,
@@ -69,7 +66,6 @@ export class ReportsController {
       endDate: end,
     });
 
-    // Enviar arquivo
     const filename = `relatorio-lavagens-${start.toISOString().split("T")[0]}-${end.toISOString().split("T")[0]}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
@@ -101,10 +97,8 @@ export class ReportsController {
       throw new BadRequestException("Datas inválidas");
     }
 
-    // Se shopId foi passado na query, usa ele, senão usa o contexto
     const targetShopId = shopId ? Number(shopId) : contextShopId;
 
-    // Buscar dados
     const carWashes = await this.carWashService.findByDateRangeAllShops(
       start,
       end,
@@ -117,7 +111,6 @@ export class ReportsController {
       shopName = shop?.name || "Loja desconhecida";
     }
 
-    // Gerar Excel
     const excelBuffer = await this.exportService.generateExcelReport({
       carWashes,
       shopName,
@@ -125,7 +118,6 @@ export class ReportsController {
       endDate: end,
     });
 
-    // Enviar arquivo
     const filename = `relatorio-lavagens-${start.toISOString().split("T")[0]}-${end.toISOString().split("T")[0]}.xlsx`;
 
     res.setHeader(

@@ -60,7 +60,6 @@ export class CreateReviews1770800000000 implements MigrationInterface {
       true
     );
 
-    // Foreign Keys
     await queryRunner.createForeignKey(
       "reviews",
       new TableForeignKey({

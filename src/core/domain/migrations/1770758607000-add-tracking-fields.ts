@@ -2,7 +2,6 @@ import { MigrationInterface, QueryRunner, TableColumn } from "typeorm";
 
 export class AddTrackingFields1770758607000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Adicionar enum para washStatus
     await queryRunner.query(`
       CREATE TYPE "wash_status_enum" AS ENUM (
         'waiting',
@@ -13,7 +12,6 @@ export class AddTrackingFields1770758607000 implements MigrationInterface {
       );
     `);
 
-    // Adicionar coluna trackingToken
     await queryRunner.addColumn(
       "car_washes",
       new TableColumn({
@@ -25,7 +23,6 @@ export class AddTrackingFields1770758607000 implements MigrationInterface {
       })
     );
 
-    // Adicionar coluna washStatus
     await queryRunner.addColumn(
       "car_washes",
       new TableColumn({
@@ -36,7 +33,6 @@ export class AddTrackingFields1770758607000 implements MigrationInterface {
       })
     );
 
-    // Adicionar coluna startedAt
     await queryRunner.addColumn(
       "car_washes",
       new TableColumn({
@@ -46,7 +42,6 @@ export class AddTrackingFields1770758607000 implements MigrationInterface {
       })
     );
 
-    // Adicionar coluna completedAt
     await queryRunner.addColumn(
       "car_washes",
       new TableColumn({
@@ -56,7 +51,6 @@ export class AddTrackingFields1770758607000 implements MigrationInterface {
       })
     );
 
-    // Gerar tokens para registros existentes
     await queryRunner.query(`
       UPDATE car_washes
       SET "trackingToken" = gen_random_uuid()::text

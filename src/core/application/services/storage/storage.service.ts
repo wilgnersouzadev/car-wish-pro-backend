@@ -31,7 +31,6 @@ export class StorageService implements OnModuleInit {
           this.logger.log(`Bucket ${bucket} created successfully`);
         }
 
-        // Always set public read policy for car-washes and shops buckets
         const policy = {
           Version: '2012-10-17',
           Statement: [

@@ -54,9 +54,9 @@ export class ShopService {
         email: registerOwnerDTO.ownerEmail,
         password: hashedPassword,
         role: UserRole.ADMIN,
-        shopId: savedShop.id, // Contexto inicial
+        shopId: savedShop.id,
         isActive: true,
-        shops: [savedShop], // Vincula o admin à loja via ManyToMany
+        shops: [savedShop],
       });
 
       const savedOwner = await queryRunner.manager.save(owner);

@@ -29,7 +29,6 @@ export class ReviewService {
       throw new BadRequestException("Você não pode avaliar esta lavagem");
     }
 
-    // Verificar se já existe review para esta lavagem
     const existingReview = await this.reviewRepository.findOne({
       where: { carWashId: createReviewDto.carWashId },
     });
@@ -57,7 +56,6 @@ export class ReviewService {
       throw new NotFoundException("Lavagem não encontrada");
     }
 
-    // Verificar se já existe review para esta lavagem
     const existingReview = await this.reviewRepository.findOne({
       where: { carWashId: createReviewDto.carWashId },
     });
